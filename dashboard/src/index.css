@@ -1,0 +1,217 @@
+/* SmartDetect — Clean White Theme */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* FIX 1 — html/body/root fully fill the viewport, no scroll */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #f7f8fa;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { display: flex; height: 100%; width: 100%; overflow: hidden; }
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 4px; }
+
+/* ── Layout ─────────────────────────────────────────── */
+/* FIX 2 — Sidebar */
+.layout-sidebar {
+  width: 200px;
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+}
+
+/* FIX 3 — Main content area */
+.layout-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
+}
+.layout-topbar {
+  height: 52px;
+  flex-shrink: 0;
+  width: 100%;
+}
+.layout-main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+  height: calc(100vh - 52px);
+  min-width: 0;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.card {
+  background: #ffffff;
+  border: 0.5px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 8px 14px;
+  border-radius: 8px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  transition: opacity 0.15s;
+}
+.btn:hover:not(:disabled) { opacity: 0.85; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-black  { background: #111; color: #fff; }
+.btn-white  { background: #fff; color: #111; border: 0.5px solid #e8e8e8; }
+.btn-ghost  { background: transparent; color: #555; }
+
+/* ── Input ──────────────────────────────────────────── */
+input, textarea, select {
+  font-family: inherit; font-size: 13px;
+  border: 0.5px solid #e8e8e8; border-radius: 8px;
+  padding: 8px 10px; color: #111; background: #fff;
+  width: 100%; outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus, select:focus { border-color: #bbb; }
+
+/* ── Badges ─────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 500;
+}
+.badge-green   { background: #f0fdf4; color: #166534; border: 0.5px solid #bbf7d0; }
+.badge-blue    { background: #eff6ff; color: #1d4ed8; border: 0.5px solid #bfdbfe; }
+.badge-amber   { background: #fffbeb; color: #b45309; border: 0.5px solid #fed7aa; }
+.badge-gray    { background: #f9fafb; color: #6b7280; border: 0.5px solid #e5e7eb; }
+
+/* ── Dot indicators ─────────────────────────────────── */
+.dot { display: inline-block; border-radius: 50%; flex-shrink: 0; }
+.dot-green  { background: #22c55e; }
+.dot-amber  { background: #f59e0b; }
+.dot-gray   { background: #d1d5db; }
+.dot-black  { background: #111; }
+
+/* ── Typography helpers ──────────────────────────────── */
+.label   { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+.title   { font-size: 14px; font-weight: 500; color: #111; }
+.sub     { font-size: 11px; color: #aaa; }
+.mono    { font-family: 'SF Mono', Menlo, monospace; }
+
+/* ── Spinner ────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid #e0e0e0; border-top-color: #111;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+.spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
+
+/* ── Pulse ──────────────────────────────────────────── */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+/* ── Fade in ────────────────────────────────────────── */
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.fade-in { animation: fadeIn 0.2s ease both; }
+
+/* ── Tab strip ──────────────────────────────────────── */
+.tab-strip { display: flex; gap: 4px; background: #f5f5f5; padding: 3px; border-radius: 10px; }
+.tab-item  {
+  padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; color: #888; border: none; background: transparent;
+}
+.tab-item.active { background: #111; color: #fff; }
+.tab-item:not(.active):hover { background: #eee; color: #333; }
+
+/* ── FIX 7 — Location tab pills (scrollable, no overflow) */
+.loc-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.loc-tabs::-webkit-scrollbar { display: none; }
+
+.loc-tab-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.loc-tab-pill.active   { background: #111; color: #fff; }
+.loc-tab-pill.inactive { background: #fff; border: 0.5px solid #e8e8e8; color: #555; }
+
+/* ── Camera screen ──────────────────────────────────── */
+.camera-screen {
+  background: #111; border-radius: 8px;
+  aspect-ratio: 16/9; overflow: hidden; position: relative;
+}
+.camera-grid-lines {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 20% 20%;
+}
+
+/* ── FIX 5 — Dashboard layout helpers ───────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.two-col-left  { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.two-col-right { display: flex; flex-direction: column; overflow: hidden; min-height: 0; overflow-y: auto; }
+
+/* ── FIX 8 — Responsive breakpoints ─────────────────── */
+@media (max-width: 1024px) {
+  .layout-sidebar { width: 160px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .layout-sidebar { display: none; }
+  .layout-main { padding: 12px; }
+}

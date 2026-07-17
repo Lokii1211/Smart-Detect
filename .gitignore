@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment (NEVER commit — contains database passwords)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# ML model weights (large binary files)
+*.onnx
+*.pt
+*.pth
+*.engine
+.insightface/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Node / Dashboard
+node_modules/
+dashboard/dist/
+package-lock.json
+
+# Logs & debug output
+*.log
+logs/
+debug_err.txt
+debug_out.txt
+e2e_out.txt
+dep_check.txt
+stale_files.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Antigravity / brain
+brain/
+
+# Snapshots, uploaded videos & temp
+snapshots/
+uploads/
+check_imports.py
+fix_deepsort.py

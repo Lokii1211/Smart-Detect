@@ -1,0 +1,106 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Metro Person Tracking System — Docker Compose
+#
+# One command to start everything:
+#   docker compose up
+#
+# Services:
+#   postgres  — PostgreSQL 16 + pgvector (auto-creates schema + seeds stations)
+#   backend   — FastAPI application (waits for postgres to be healthy)
+#   frontend  — React / Vite dashboard (served via Node dev server)
+#
+# URLs after startup:
+#   http://localhost:5173       ← React Dashboard
+#   http://localhost:8000/docs  ← Swagger API docs
+#   http://localhost:8000/health ← Health check
+#
+# Load demo data (run after `docker compose up`):
+#   docker compose exec backend python scripts/demo_setup.py --days 3
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL + pgvector ──────────────────────────────────────────────────
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: metro_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       metro_db
+      POSTGRES_USER:     metro_user
+      POSTGRES_PASSWORD: metro_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist database data across container restarts
+      - postgres_data:/var/lib/postgresql/data
+      # init.sql is auto-executed ONCE on first container start:
+      #   - enables pgvector extension
+      #   - creates tables (persons, stations, sightings)
+      #   - seeds 8 demo locations
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metro_user -d metro_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: metro_backend
+    restart: unless-stopped
+    environment:
+      # Use PostgreSQL inside Docker network
+      DATABASE_URL:      postgresql://metro_user:metro_pass@postgres:5432/metro_db
+      MODEL_CACHE_DIR:   /app/.insightface
+      # JWT settings (override in production .env)
+      JWT_SECRET:        smartdetect-docker-secret-change-in-prod
+      JWT_EXPIRE_HOURS:  "8"
+      # Default operator credentials (override in production)
+      ADMIN_PASSWORD:    smartAdmin2024
+      OPERATOR_PASSWORD: smartOp2024
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source for hot-reload during development
+      - .:/app
+      # Separate volume for large model weight files
+      - model_cache:/app/.insightface
+      # Persist logs outside the container
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Run database migrations then start the server
+    command: >
+      sh -c "python scripts/seed_db.py &&
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ── React Dashboard ────────────────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: metro_frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      # Mount dashboard source into the container
+      - ./dashboard:/app
+    ports:
+      - "5173:5173"
+    environment:
+      # Tell Vite to use the Dockerised backend
+      VITE_API_URL: http://localhost:8000
+    # Install deps (cached in node_modules volume) then start dev server
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+
+# ─── Named volumes ────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:    # PostgreSQL data files
+  model_cache:      # InsightFace / torchreid model weights
