@@ -89,6 +89,16 @@ cd dashboard && npm install && npm run dev   # http://localhost:5173
 
 Docker route (`docker compose up`) exists but the compose file predates the video-upload feature — local run is the tested path right now.
 
+### One-command live demo
+
+The repo ships with 7 sample clips in `demo_videos/` (public MIT test footage). With the backend running:
+
+```bash
+python scripts/demo_videos.py        # uploads all clips, starts 4 playing
+```
+
+Then open **http://localhost:5173/live** and click **⊞ Wall** to watch every camera side-by-side like a CCTV monitor wall — grey "Detecting…" labels turn into green `SDT-XXXX` codes as faces come into range. The **People** page shows each identity with photo evidence (and auto-flags likely duplicate codes for one-click merge); **Photo Search** finds a person across all cameras from a single photo, live.
+
 ### Try the core flows
 
 1. **Live camera**: the default webcam auto-starts as CAM-001 (unless its DB row points elsewhere). Stand in frame → grey "Detecting..." → green `SDT-0001` within ~3 s.

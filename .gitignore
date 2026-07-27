@@ -57,3 +57,8 @@ snapshots/
 uploads/
 check_imports.py
 fix_deepsort.py
+
+# demo_videos/ is intentionally committed (public MIT sample clips) so a fresh
+# clone can run the live demo — force-added despite the *.mp4 rule above
+!demo_videos/
+!demo_videos/*.mp4
