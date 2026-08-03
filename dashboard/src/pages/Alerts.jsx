@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
+import { getToken as sdGetToken } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -12,7 +13,8 @@ const SEVERITY_STYLE = {
 const TYPE_LABELS = {
   watchlist:       'Watchlist',
   camera_offline:  'Camera',
-  crowd:           'Crowd',
+  // 'crowd' removed 2026-08-02 — the backend never emitted it and there is
+  // no occupancy policy behind it. Unknown types fall back to the raw string.
 }
 
 function fmtTime(iso) {
@@ -26,21 +28,15 @@ function fmtTime(iso) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
+/* Auth comes from the shared session established at sign-in (src/auth.js).
+   The hardcoded credentials that used to live here were served to every
+   visitor in the JS bundle — removed 2026-08-01. */
 function getToken() {
-  return localStorage.getItem('smartdetect_token')
+  return sdGetToken()
 }
 
 async function ensureToken() {
-  let token = getToken()
-  if (token) return token
-  try {
-    const res = await axios.post(`${API}/auth/login`, { username: 'operator', password: 'smartOp2024' })
-    token = res.data.access_token
-    localStorage.setItem('smartdetect_token', token)
-    return token
-  } catch {
-    return null
-  }
+  return sdGetToken()
 }
 
 function authHeaders(token) {

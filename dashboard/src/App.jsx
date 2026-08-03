@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import Login from './pages/Login.jsx'
+import { isAuthenticated, installAuthInterceptor, logout, primeStreamToken } from './auth'
 import Sidebar from './components/Sidebar.jsx'
 import TopBar  from './components/TopBar.jsx'
 import Dashboard   from './pages/Dashboard.jsx'
@@ -57,10 +60,27 @@ function AppShell() {
   )
 }
 
+// Any 401 anywhere clears the session and returns to sign-in.
+installAuthInterceptor(axios)
+
 export default function App() {
+  const [authed, setAuthed] = useState(isAuthenticated())
+
+  useEffect(() => {
+    const onExpired = () => setAuthed(false)
+    window.addEventListener('sd-auth-expired', onExpired)
+    return () => window.removeEventListener('sd-auth-expired', onExpired)
+  }, [])
+
+  // <img> tags cannot send Authorization headers, so mint the short-lived
+  // stream token once per session before any media renders.
+  useEffect(() => { if (authed) primeStreamToken() }, [authed])
+
+  if (!authed) return <Login onSuccess={() => setAuthed(true)} />
+
   return (
     <BrowserRouter>
-      <AppShell />
+      <AppShell onSignOut={logout} />
     </BrowserRouter>
   )
 }

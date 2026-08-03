@@ -62,3 +62,17 @@ fix_deepsort.py
 # clone can run the live demo — force-added despite the *.mp4 rule above
 !demo_videos/
 !demo_videos/*.mp4
+
+# Offline evaluation harness outputs (regenerable; eval.db can be large)
+eval/results/*/eval.db*
+eval/results/*/workdir/
+
+# Test/coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Benchmark + profiling scratch (regenerable)
+eval/results/_profile_work/
+eval/results/perf/
+scratch_verify_flags*

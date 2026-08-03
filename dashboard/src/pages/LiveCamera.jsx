@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import { getToken as sdGetToken, getStreamToken, withStreamToken, mediaUrl } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -191,7 +192,7 @@ function CameraCard({ cam, token, onDeleted }) {
   const [fileState, setFileState] = useState(null)
   const imgRef = useRef(null)
   const retryTimerRef = useRef(null)
-  const streamUrl = `${API}/camera/stream/${cam.id}`
+  const streamUrl = mediaUrl(`camera/stream/${cam.id}`)
   const isFile = isFileSource(cam.source)
 
   // Poll processing progress for uploaded videos while running
@@ -445,7 +446,7 @@ function WallTile({ cam, token, onChanged }) {
   const [busy, setBusy]     = useState(false)
   const [imgErr, setImgErr] = useState(false)
   const imgRef = useRef(null)
-  const streamUrl = `${API}/camera/stream/${cam.id}`
+  const streamUrl = mediaUrl(`camera/stream/${cam.id}`)
 
   const start = async () => {
     setBusy(true)
@@ -574,13 +575,13 @@ export default function LiveCamera() {
   const [token,       setToken]       = useState(null)
 
   // ── Auth token ─────────────────────────────────────────────────────────────
+  // Established at sign-in (src/auth.js). Auto-login with hardcoded operator
+  // credentials was removed 2026-08-01 — it shipped a working password to
+  // every visitor in the JS bundle.
   useEffect(() => {
-    const cached = sessionStorage.getItem('sd_token')
-    if (cached) { setToken(cached); return }
-    // Auto-login with default operator credentials
-    axios.post(`${API}/auth/login`, { username: 'operator', password: 'smartOp2024' })
-      .then(r => { sessionStorage.setItem('sd_token', r.data.access_token); setToken(r.data.access_token) })
-      .catch(() => setError('Backend unreachable. Start: uvicorn backend.main:app --port 8000'))
+    const t = sdGetToken()
+    if (t) setToken(t)
+    else setError('Session expired — please sign in again.')
   }, [])
 
   // ── Fetch cameras + locations ──────────────────────────────────────────────

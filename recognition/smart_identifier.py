@@ -21,6 +21,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
+from config.identity_config import IdentityConfig, get_identity_config
 from database.models import Person
 from database.queries import (
     find_person_by_embedding,
@@ -133,41 +134,14 @@ class SmartIdentifier:
         si = SmartIdentifier()
         result = si.identify(frame, bbox, db)
         # result: {unique_code, method, confidence, color_hex, ...}
+
+    All thresholds and feature flags come from config/identity_config.py
+    (IdentityConfig) — pass one explicitly, or the process-wide config loaded
+    from SMARTDETECT_IDENTITY_CONFIG (or defaults) is used automatically.
     """
 
-    FACE_THRESHOLD  = 0.56   # ArcFace cosine sim — 0.35 cross-matched
-                             # strangers; 0.50 still cross-matched two pairs
-                             # of different people on the 4-video eval set
-    COLOR_THRESHOLD = 30.0
-    REID_THRESHOLD  = 0.68   # OSNet cosine sim — 0.60 cross-matched different
-                             # people in similar clothing; templates refresh to
-                             # today's outfit on face confirm, so real
-                             # re-associations score well above this
-    MULTI_THRESHOLD = 0.65
-    # Colour/Re-ID may only re-associate someone seen this recently (minutes)
-    COLOR_RECENT_MINUTES = 10.0
-    # Body features track clothing — trust them across hours, not days
-    REID_RECENT_MINUTES  = 720.0
-    # If the query face clearly differs from a candidate's stored face,
-    # reject colour/Re-ID matches to that candidate (face veto).
-    # 0.30 let 0.30-0.49 faces — already rejected by FACE_THRESHOLD — sneak
-    # back in through colour (measured: 3 different people merged into one
-    # SDT code on face-demographics-walking.mp4). Veto anything the face
-    # matcher itself would not accept.
-    FACE_VETO_THRESHOLD = 0.45
-
-    # Running-average template update: each confident match blends the fresh
-    # embedding into the stored one, so memory adapts to new lighting/angles
-    # instead of staying frozen at the registration-day snapshot.
-    TEMPLATE_BLEND = 0.20   # weight of the new embedding
-    # Gallery: keep extra templates for usefully DIFFERENT views. A match
-    # above this is near-identical to what we already store — skip it.
-    GALLERY_APPEND_MAX_SIM = 0.85
-    # ...but only from confident matches: the matcher scores a person by their
-    # BEST template, so one marginal (≈0.50) view in the gallery turns the
-    # code into a similarity magnet that attracts strangers
-    GALLERY_APPEND_MIN_SIM = 0.60
-    GALLERY_MAX_TEMPLATES  = 5
+    def __init__(self, config: Optional[IdentityConfig] = None) -> None:
+        self.config = config if config is not None else get_identity_config()
 
     def _update_face_template(
         self,
@@ -184,7 +158,8 @@ class SmartIdentifier:
             stored = np.array(json.loads(person.face_embedding), dtype=np.float32)
             if stored.shape != query_emb.shape:
                 return
-            blended = (1.0 - self.TEMPLATE_BLEND) * stored + self.TEMPLATE_BLEND * query_emb
+            blend = self.config.template_blend_weight
+            blended = (1.0 - blend) * stored + blend * query_emb
             norm = np.linalg.norm(blended)
             if norm > 0:
                 blended = blended / norm * np.linalg.norm(stored)
@@ -192,14 +167,14 @@ class SmartIdentifier:
 
             # Gallery append: this view matched but looks different enough to
             # be worth remembering separately (new lighting/angle)
-            if self.GALLERY_APPEND_MIN_SIM <= similarity < self.GALLERY_APPEND_MAX_SIM:
+            if self.config.gallery_add_threshold <= similarity < self.config.gallery_add_max_similarity:
                 try:
                     templates = json.loads(person.face_templates) if person.face_templates else []
                 except Exception:
                     templates = []
                 templates.append(query_emb.tolist())
-                if len(templates) > self.GALLERY_MAX_TEMPLATES:
-                    templates = templates[-self.GALLERY_MAX_TEMPLATES:]
+                if len(templates) > self.config.gallery_max_templates:
+                    templates = templates[-self.config.gallery_max_templates:]
                 person.face_templates = json.dumps(templates)
 
             # Re-ID template refresh: face just confirmed identity, so store
@@ -233,6 +208,7 @@ class SmartIdentifier:
         face_embedding: Optional[np.ndarray] = None,
         exclude_codes: Optional[set] = None,
         extract_face_if_missing: bool = True,
+        face_pose=None,
     ) -> Dict:
         """
         Run the full 4-method pipeline and return result dict.
@@ -246,6 +222,10 @@ class SmartIdentifier:
         this person box (e.g. from the caller's full-frame scan). Passing it
         skips a per-person InsightFace run and guarantees identity comes from
         the right face when boxes overlap.
+
+        face_pose: HeadPose for THIS person's face (recognition/face_pose.py),
+        used only by the registration pose gate. None disables the gate for
+        this call (fail open) — matching is never affected by pose.
 
         exclude_codes: SDT codes already claimed by other people visible right
         now — colour/Re-ID may not hand these to a second person. New
@@ -281,14 +261,14 @@ class SmartIdentifier:
                     query_face_emb = embs[0]
             if query_face_emb is not None:
                 match = find_person_by_embedding(
-                    query_face_emb, db=db, threshold=self.FACE_THRESHOLD,
+                    query_face_emb, db=db, threshold=self.config.face_match_threshold,
                     exclude_codes=exclude_codes,
                 )
                 if match:
                     # Blend only confident matches into the stored template —
-                    # a borderline (0.50-0.55) match blended at 20% drags the
-                    # template toward a lookalike and invites future merges
-                    if match["similarity"] >= 0.55:
+                    # a borderline match blended in drags the template toward
+                    # a lookalike and invites future merges
+                    if match["similarity"] >= self.config.template_blend_threshold:
                         self._update_face_template(
                             match["unique_code"], query_face_emb, db,
                             similarity=match["similarity"], person_crop=person_crop,
@@ -308,56 +288,87 @@ class SmartIdentifier:
         # face and re-associate them (that is exactly how three different
         # people ended up sharing one SDT code). Colour/Re-ID below exist
         # only for boxes where no usable face is visible.
-        face_says_stranger = query_face_emb is not None
+        # enable_face_anchor=False reverts to the pre-hardening behavior:
+        # colour/re-ID run and match regardless of what the face says.
+        face_says_stranger = self.config.enable_face_anchor and query_face_emb is not None
 
         # ── Method 2: Dress Color (recent persons only + face veto) ─────────
         try:
-            color_info = _dominant_color_hsv(torso_crop)
-            if color_info and not face_says_stranger:
-                color_match = find_by_dress_color(
-                    color_info, threshold=self.COLOR_THRESHOLD, db=db,
-                    recent_minutes=self.COLOR_RECENT_MINUTES,
-                )
-                if (color_match
-                        and color_match["unique_code"] not in exclude_codes
-                        and not _face_veto(
-                            query_face_emb, color_match["unique_code"], db, self.FACE_VETO_THRESHOLD
-                        )):
-                    return {
-                        "unique_code": color_match["unique_code"],
-                        "method":      "dress_color",
-                        "confidence":  round(color_match["score"], 3),
-                        "color_hex":   color_info["hex_color"],
-                        "embedding":   None,
-                    }
+            if self.config.enable_colour_fallback:
+                color_info = _dominant_color_hsv(torso_crop)
+                if color_info and not face_says_stranger:
+                    color_match = find_by_dress_color(
+                        color_info, threshold=self.config.colour_match_threshold, db=db,
+                        recent_minutes=self.config.colour_reassoc_window_minutes,
+                    )
+                    if (color_match
+                            and color_match["unique_code"] not in exclude_codes
+                            and not (self.config.enable_face_anchor and _face_veto(
+                                query_face_emb, color_match["unique_code"], db,
+                                self.config.face_veto_threshold,
+                            ))):
+                        return {
+                            "unique_code": color_match["unique_code"],
+                            "method":      "dress_color",
+                            "confidence":  round(color_match["score"], 3),
+                            "color_hex":   color_info["hex_color"],
+                            "embedding":   None,
+                        }
         except Exception as exc:
             logger.debug("SmartIdentifier.dress_color failed: %s", exc)
 
         # ── Method 3: Body Re-ID (skipped in stub mode — histogram ≠ identity)
+        #
+        # PERF: OSNet costs ~190 ms/call — 20% of per-frame time after the
+        # CoreML change. It used to run unconditionally here and then be
+        # discarded whenever face_says_stranger was true (i.e. every time a
+        # visible face matched nobody, which is exactly the stranger case).
+        # It is now computed lazily, at most once, and only when a consumer
+        # actually needs the vector: a re-ID match attempt, or storing the
+        # template at registration. Semantics are unchanged — including that
+        # reid_emb stays None when enable_reid_fallback is off, so
+        # registration keeps writing a NULL reid_embedding in that config.
+        _reid_cache: Dict[str, Optional[np.ndarray]] = {}
+
+        def _reid_features() -> Optional[np.ndarray]:
+            if "v" not in _reid_cache:
+                try:
+                    _reid_cache["v"] = _get_reid_model().extract_features(person_crop)
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("reid extract failed: %s", exc)
+                    _reid_cache["v"] = None
+            return _reid_cache["v"]
+
         try:
-            reid = _get_reid_model()
-            reid_emb = reid.extract_features(person_crop)
-            if (not face_says_stranger
-                    and not getattr(reid, "is_stub", False)
-                    and reid_emb is not None and len(reid_emb) > 0):
-                reid_match = find_person_by_embedding(
-                    reid_emb, db=db,
-                    threshold=self.REID_THRESHOLD,
-                    embedding_field="reid_embedding",
-                    recent_minutes=self.REID_RECENT_MINUTES,
-                )
-                if (reid_match
-                        and reid_match["unique_code"] not in exclude_codes
-                        and not _face_veto(
-                            query_face_emb, reid_match["unique_code"], db, self.FACE_VETO_THRESHOLD
-                        )):
-                    return {
-                        "unique_code": reid_match["unique_code"],
-                        "method":      "body_structure",
-                        "confidence":  round(reid_match["similarity"], 3),
-                        "color_hex":   color_info["hex_color"] if color_info else None,
-                        "embedding":   None,
-                    }
+            if self.config.enable_reid_fallback:
+                reid = _get_reid_model()
+                # Only pay for the forward pass if this match can actually run.
+                if not face_says_stranger and not getattr(reid, "is_stub", False):
+                    reid_emb = _reid_features()
+                else:
+                    reid_emb = None
+                if (not face_says_stranger
+                        and not getattr(reid, "is_stub", False)
+                        and reid_emb is not None and len(reid_emb) > 0):
+                    reid_match = find_person_by_embedding(
+                        reid_emb, db=db,
+                        threshold=self.config.reid_match_threshold,
+                        embedding_field="reid_embedding",
+                        recent_minutes=self.config.reid_reassoc_window_hours * 60,
+                    )
+                    if (reid_match
+                            and reid_match["unique_code"] not in exclude_codes
+                            and not (self.config.enable_face_anchor and _face_veto(
+                                query_face_emb, reid_match["unique_code"], db,
+                                self.config.face_veto_threshold,
+                            ))):
+                        return {
+                            "unique_code": reid_match["unique_code"],
+                            "method":      "body_structure",
+                            "confidence":  round(reid_match["similarity"], 3),
+                            "color_hex":   color_info["hex_color"] if color_info else None,
+                            "embedding":   None,
+                        }
         except Exception as exc:
             logger.debug("SmartIdentifier.reid failed: %s", exc)
 
@@ -371,6 +382,25 @@ class SmartIdentifier:
                 "confidence":  0.0,
                 "color_hex":   color_info["hex_color"] if color_info else None,
                 "embedding":   None,
+            }
+
+        # ── Registration pose gate ──────────────────────────────────────────
+        # Last check before minting: an extreme viewpoint produces an
+        # embedding that will not match this person's later frontal frames,
+        # so it creates a duplicate identity rather than a new person.
+        # Returning "Detecting..." defers enrolment to a better frame of the
+        # SAME track — it does not lose the person.
+        from recognition.face_pose import pose_ok_for_registration
+        pose_ok, pose_reason = pose_ok_for_registration(face_pose, self.config)
+        if not pose_ok:
+            logger.debug("registration deferred: pose gate — %s", pose_reason)
+            return {
+                "unique_code": "Detecting...",
+                "method":      "pending_pose",
+                "confidence":  0.0,
+                "color_hex":   color_info["hex_color"] if color_info else None,
+                "embedding":   None,
+                "pose_reason": pose_reason,
             }
 
         # ── Method 5: New Registration (reuses embeddings computed above) ───
@@ -391,6 +421,13 @@ class SmartIdentifier:
 
         try:
             face_emb_json = json.dumps(query_face_emb.tolist())
+            # Registration is the one place the vector is needed even when
+            # Method 3 above short-circuited (face_says_stranger). Compute it
+            # now if the lazy helper has not already — still gated on
+            # enable_reid_fallback so the stored value matches the old
+            # behaviour exactly in every config.
+            if reid_emb is None and self.config.enable_reid_fallback:
+                reid_emb = _reid_features()
             reid_emb_json = json.dumps(reid_emb.tolist()) if reid_emb is not None else None
 
             height_ratio = round(h / max(fh, 1), 4)

@@ -78,10 +78,28 @@ class Person(Base):
     location_id       = Column(String(64),  nullable=True, index=True)   # plain string, no FK
     person_type       = Column(String(32),  nullable=False, default="unknown")
 
+    # ── Data governance (see docs/DATA_GOVERNANCE.md) ────────────────────────
+    # A face embedding is biometric data. Under India's DPDP Act 2023, GDPR
+    # Art. 9 and BIPA it may only be processed on a stated lawful basis, so
+    # every identity must carry one. Default 'unknown' is deliberately the
+    # WORST case: an identity auto-registered from a live camera has given no
+    # consent, and the purge job treats 'unknown' most aggressively.
+    consent_status    = Column(String(16),  nullable=False, default="unknown",
+                               index=True)   # consented | dataset | unknown
+    consent_ref       = Column(String(128), nullable=True)   # signed-form ID / dataset licence
+    consent_recorded_at = Column(DateTime,  nullable=True)
+    consent_recorded_by = Column(String(64), nullable=True)  # operator username
+
+    # Retention. retain_until is computed from consent_status when the row is
+    # created and re-computed on each sighting; the purge job deletes rows
+    # past it. legal_hold blocks purging regardless (e.g. active investigation).
+    retain_until      = Column(DateTime,    nullable=True, index=True)
+    legal_hold        = Column(Boolean,     nullable=False, default=False)
+
     sightings = relationship("Sighting", back_populates="person", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
-        return f"<Person code={self.unique_code!r} type={self.person_type!r}>"
+        return f"<Person code={self.unique_code!r} type={self.person_type!r} consent={self.consent_status!r}>"
 
 
 # ─── Sighting ─────────────────────────────────────────────────────────────────
@@ -152,7 +170,11 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id          = Column(String(36),  primary_key=True, default=_uuid)
-    alert_type  = Column(String(32),  nullable=False, index=True)    # watchlist | camera_offline | crowd
+    # watchlist | camera_offline. 'crowd' was listed here but never
+    # implemented and has been removed: it needs a per-zone occupancy
+    # policy that does not exist, and a guessed threshold produces alerts
+    # nobody can act on. Re-add it WITH a policy, not before.
+    alert_type  = Column(String(32),  nullable=False, index=True)
     severity    = Column(String(16),  nullable=False, default="info")  # info | warning | critical
     title       = Column(String(256), nullable=False)
     message     = Column(Text,        nullable=True)
@@ -164,3 +186,69 @@ class Alert(Base):
 
     def __repr__(self) -> str:
         return f"<Alert type={self.alert_type!r} severity={self.severity!r} at={self.created_at}>"
+
+
+# ─── AuditLog ─────────────────────────────────────────────────────────────────
+
+class AuditLog(Base):
+    """
+    Immutable record of every access to biometric data: who looked up whom,
+    when, from where, and what came back.
+
+    Required for accountability under DPDP Act s.8(4)-(5) (reasonable
+    security safeguards + demonstrable compliance) and GDPR Art. 30. Without
+    it there is no way to answer "who searched for this person", which is the
+    question that matters after a misuse complaint.
+
+    APPEND-ONLY by policy: nothing in the application updates or deletes rows
+    here except the retention purge (audit_retention_days). Note the log
+    itself contains personal data — the subject_code — so it carries its own
+    retention period rather than being kept forever.
+    """
+    __tablename__ = "audit_log"
+
+    id           = Column(String(36),  primary_key=True, default=_uuid)
+    occurred_at  = Column(DateTime,    default=datetime.utcnow, nullable=False, index=True)
+    actor        = Column(String(64),  nullable=False, index=True)   # username from the JWT
+    actor_role   = Column(String(32),  nullable=True)
+    actor_ip     = Column(String(64),  nullable=True)
+    action       = Column(String(48),  nullable=False, index=True)
+    # e.g. search.by_photo | person.read | person.trail | person.erase |
+    #      person.consent_update | purge.run | person.list
+    subject_code = Column(String(32),  nullable=True, index=True)    # SDT code acted on
+    outcome      = Column(String(32),  nullable=False)               # matched | no_match | denied | ok | error
+    detail       = Column(Text,        nullable=True)                # JSON: confidence, counts, reason
+
+    def __repr__(self) -> str:
+        return (f"<AuditLog {self.occurred_at} {self.actor} {self.action} "
+                f"{self.subject_code} -> {self.outcome}>")
+
+
+# ─── ErasureReceipt ───────────────────────────────────────────────────────────
+
+class ErasureReceipt(Base):
+    """
+    Proof that a data-subject erasure actually completed.
+
+    DPDP Act s.12(3) gives a Data Principal the right to erasure, and s.8(7)
+    requires the Data Fiduciary to erase when consent is withdrawn. A verbal
+    "we deleted it" is not evidence. This row records exactly what was
+    destroyed and survives the person it refers to — it deliberately holds NO
+    biometric data, only counts and the code, so it is safe to retain as an
+    audit artefact after the identity itself is gone.
+    """
+    __tablename__ = "erasure_receipts"
+
+    id                 = Column(String(36), primary_key=True, default=_uuid)
+    unique_code        = Column(String(32), nullable=False, index=True)
+    erased_at          = Column(DateTime,   default=datetime.utcnow, nullable=False, index=True)
+    erased_by          = Column(String(64), nullable=False)
+    reason             = Column(String(64), nullable=False)   # subject_request | consent_withdrawn | retention_expiry | operator
+    sightings_deleted  = Column(Integer,    nullable=False, default=0)
+    snapshots_deleted  = Column(Integer,    nullable=False, default=0)
+    embeddings_cleared = Column(Integer,    nullable=False, default=0)
+    verified           = Column(Boolean,    nullable=False, default=False)  # post-delete re-check passed
+    detail             = Column(Text,       nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<ErasureReceipt {self.unique_code} at={self.erased_at} verified={self.verified}>"

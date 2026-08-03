@@ -1,0 +1,20 @@
+{
+  "_name": "A — pre-hardening (renamed from A_baseline: 'baseline' implied a safe default, which this is not — it reproduces a documented failure mode)",
+  "_mechanisms_active": [
+    "Method 1 face matching (always runs, in every config — never gated by any flag here)",
+    "Method 2 dress-colour fallback — UNCONSTRAINED: runs even when a face is visible and matches nobody",
+    "Method 3 body re-ID fallback — UNCONSTRAINED: same as above",
+    "Face-based registration gate — a new SDT code still requires a visible face in every config, see _registration_note"
+  ],
+  "_mechanisms_disabled": [
+    "face_says_stranger gate — a visible-but-unmatched face no longer blocks colour/re-ID from attempting a match",
+    "face_veto — colour/re-ID matches are accepted even when the visible face clearly contradicts the candidate's stored face",
+    "ByteTrack ID-switch guard — a track's cached code is trusted unconditionally, even across an occlusion hand-off to a different person",
+    "evidence gating — every sighting with a non-'Detecting...' code is logged, including one inherited from a stale/wrong cache"
+  ],
+  "_registration_note": "enable_face_anchor never gates whether a NEW SDT code can be minted. Method 5 (registration) always requires query_face_emb is not None, in ALL FOUR configs — this is a separate, flag-independent gate. What enable_face_anchor actually controls is exclusively re-association of EXISTING people: whether colour/re-ID may run at all when a face is visible-but-unmatched, and whether a contradicting face can veto a colour/re-ID match. With it off, colour/re-ID become unconstrained by face signal for that purpose only.",
+  "_expected_risk": "This is architecturally what SmartDetect looked like before the 2026-07-30 identity-accuracy hardening. Under an earlier, even-looser version of this architecture (0.30 face-veto threshold, no face_says_stranger gate at all), 3 different people were observed merging into 1 SDT code on a real evaluation clip. This config is the closest reproduction available via flags alone and is expected to merge identities under any clothing-similarity or occlusion stress — that is the point of including it in the ablation.",
+  "enable_face_anchor": false,
+  "enable_id_switch_guard": false,
+  "enable_evidence_gating": false
+}

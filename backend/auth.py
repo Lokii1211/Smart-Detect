@@ -1,60 +1,139 @@
 """
 backend/auth.py
 ────────────────
-JWT authentication for the SmartDetect Person Tracking System.
+JWT authentication for SmartDetect.
 
-Provides:
-  - POST /auth/login  — returns a signed JWT for valid credentials
-  - JWT validation dependency  — protect routes with Depends(require_auth)
-  - Role checking helpers      — require_operator, require_admin
+SECURITY POSTURE (changed 2026-08-01 — see PROJECT_REVIEW.md §4.1)
+──────────────────────────────────────────────────────────────────
+This module previously shipped hardcoded fallbacks for the JWT signing key
+and for both account passwords, and silently degraded to unsigned base64
+"tokens" when PyJWT was absent. All three are removed:
 
-Roles:
-  operator  — can search trails, log sightings, read stations
-  admin     — full access including user management, log viewing
+  * JWT_SECRET, ADMIN_PASSWORD and OPERATOR_PASSWORD are REQUIRED. The
+    process refuses to start without them (see require_configured()).
+  * PyJWT is a hard dependency. There is no unsigned-token fallback: that
+    path let anyone mint an admin token with base64 alone.
+  * Passwords are compared with hmac.compare_digest (constant time).
 
-Default credentials (override via .env):
-  admin    / smartAdmin2024
-  operator / smartOp2024
+Local development: run `python scripts/generate_env.py` once to write a .env
+with a random secret and random passwords.
 
-TOKEN LIFETIME: 8 hours (configurable via JWT_EXPIRE_HOURS env var)
+Roles
+    operator  — person data, streams, search, cameras
+    admin     — everything, plus logs and settings
+
+Token lifetime: JWT_EXPIRE_HOURS (default 8).
 """
 
 from __future__ import annotations
 
+import hmac
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-# Try PyJWT (pip install pyjwt); if missing, fall back to a stub that
-# keeps the server running without authentication enforcement.
-try:
-    import jwt as pyjwt
-    _JWT_AVAILABLE = True
-except ImportError:
-    _JWT_AVAILABLE = False
-
 from pydantic import BaseModel
 
-# ─── Configuration ─────────────────────────────────────────────────────────────
-SECRET_KEY   = os.getenv("JWT_SECRET",       "smartdetect-secret-key-change-in-prod")
-ALGORITHM    = "HS256"
+load_dotenv()   # so a local .env satisfies the required vars below
+
+# PyJWT is REQUIRED. The previous ImportError fallback produced unsigned
+# tokens that anyone could forge — a silent auth bypass. Fail loudly instead.
+try:
+    import jwt as pyjwt
+except ImportError as exc:  # pragma: no cover
+    raise RuntimeError(
+        "PyJWT is required for authentication but is not installed.\n"
+        "    pip install PyJWT==2.8.0\n"
+        "Refusing to start: the previous unsigned-token fallback allowed "
+        "trivial authentication bypass."
+    ) from exc
+
+
+ALGORITHM = "HS256"
 EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "8"))
 
-# ─── In-memory user store ──────────────────────────────────────────────────────
-# Production NOTE: replace this dict with a real users table.
-_USERS = {
-    os.getenv("ADMIN_USERNAME",    "admin"):    {
-        "password": os.getenv("ADMIN_PASSWORD",    "smartAdmin2024"),
-        "role":     "admin",
-    },
-    os.getenv("OPERATOR_USERNAME", "operator"): {
-        "password": os.getenv("OPERATOR_PASSWORD", "smartOp2024"),
-        "role":     "operator",
-    },
+# Minimum entropy for the signing key. 32 chars of the generator's alphabet
+# is ~190 bits; anything shorter is likely a human-typed placeholder.
+_MIN_SECRET_LEN = 32
+
+_REQUIRED_VARS = ("JWT_SECRET", "ADMIN_PASSWORD", "OPERATOR_PASSWORD")
+
+# Values that were previously shipped as defaults. If any of them shows up in
+# the environment, someone has copied the old insecure config forward.
+_KNOWN_BAD = {
+    "smartdetect-secret-key-change-in-prod",
+    "smartdetect-docker-secret-change-in-prod",
+    "smartAdmin2024",
+    "smartOp2024",
+    "changeme", "password", "secret",
 }
+
+
+class ConfigurationError(RuntimeError):
+    """Raised at import/startup when required auth config is missing or weak."""
+
+
+def require_configured() -> None:
+    """
+    Validate auth configuration. Called at application startup so the process
+    dies immediately rather than serving a biometric database with guessable
+    credentials.
+    """
+    missing = [v for v in _REQUIRED_VARS if not os.getenv(v)]
+    problems: list[str] = []
+
+    if missing:
+        problems.append(f"missing required environment variables: {', '.join(missing)}")
+
+    secret = os.getenv("JWT_SECRET", "")
+    if secret and len(secret) < _MIN_SECRET_LEN:
+        problems.append(
+            f"JWT_SECRET is {len(secret)} chars; at least {_MIN_SECRET_LEN} required")
+
+    for var in _REQUIRED_VARS:
+        val = os.getenv(var)
+        if val and val in _KNOWN_BAD:
+            problems.append(
+                f"{var} is set to a known default/placeholder value — it is "
+                f"published in this repository's history and must be changed")
+
+    if problems:
+        raise ConfigurationError(
+            "SmartDetect authentication is not configured securely.\n\n"
+            + "\n".join(f"  - {p}" for p in problems)
+            + "\n\nFix:\n"
+              "    python scripts/generate_env.py      # writes .env with random values\n"
+              "  or export them yourself:\n"
+              "    export JWT_SECRET=$(python -c \"import secrets;print(secrets.token_urlsafe(48))\")\n"
+              "    export ADMIN_PASSWORD=...  OPERATOR_PASSWORD=...\n\n"
+              "These are NOT optional: this service exposes face embeddings, "
+              "photographs and live camera streams."
+        )
+
+
+def _secret() -> str:
+    s = os.getenv("JWT_SECRET")
+    if not s:
+        raise ConfigurationError("JWT_SECRET is not set")
+    return s
+
+
+def _users() -> dict:
+    """Built per-call so tests and startup validation see current env."""
+    return {
+        os.getenv("ADMIN_USERNAME", "admin"): {
+            "password": os.getenv("ADMIN_PASSWORD") or "",
+            "role": "admin",
+        },
+        os.getenv("OPERATOR_USERNAME", "operator"): {
+            "password": os.getenv("OPERATOR_PASSWORD") or "",
+            "role": "operator",
+        },
+    }
 
 
 # ─── Pydantic models ───────────────────────────────────────────────────────────
@@ -78,46 +157,40 @@ class TokenData(BaseModel):
 
 # ─── Token helpers ─────────────────────────────────────────────────────────────
 
-def create_access_token(username: str, role: str) -> str:
-    """Create and sign a JWT with an expiry timestamp."""
-    if not _JWT_AVAILABLE:
-        # Stub token when PyJWT is not installed — NOT secure, dev only
-        import base64, json as _json  # noqa: PLC0415
-        payload = {"sub": username, "role": role, "stub": True}
-        return "stub." + base64.b64encode(_json.dumps(payload).encode()).decode()
-
-    expire = datetime.now(timezone.utc) + timedelta(hours=EXPIRE_HOURS)
+def create_access_token(username: str, role: str,
+                        expire_hours: Optional[float] = None,
+                        scope: str = "api") -> str:
+    """
+    Sign a JWT. `scope` distinguishes ordinary API tokens from the
+    short-lived, query-string stream tokens issued for MJPEG <img> tags,
+    which cannot carry an Authorization header.
+    """
+    hours = EXPIRE_HOURS if expire_hours is None else expire_hours
+    now = datetime.now(timezone.utc)
     payload = {
         "sub":  username,
         "role": role,
-        "exp":  expire,
-        "iat":  datetime.now(timezone.utc),
+        "scope": scope,
+        "exp":  now + timedelta(hours=hours),
+        "iat":  now,
     }
-    return pyjwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return pyjwt.encode(payload, _secret(), algorithm=ALGORITHM)
 
 
-def decode_token(token: str) -> TokenData:
-    """
-    Decode and validate a JWT.
-    Raises HTTPException 401 on any failure.
-    """
-    if not _JWT_AVAILABLE:
-        # Stub decode
-        try:
-            import base64, json as _json  # noqa: PLC0415
-            _, b64 = token.split(".", 1)
-            data = _json.loads(base64.b64decode(b64 + "==").decode())
-            return TokenData(username=data.get("sub"), role=data.get("role"))
-        except Exception:  # noqa: BLE001
-            raise _unauthorized("Invalid stub token")
-
+def decode_token(token: str, expected_scopes: tuple = ("api",)) -> TokenData:
+    """Decode and validate a JWT. Raises 401 on any failure."""
     try:
-        payload = pyjwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return TokenData(username=payload.get("sub"), role=payload.get("role"))
+        payload = pyjwt.decode(token, _secret(), algorithms=[ALGORITHM])
     except pyjwt.ExpiredSignatureError:
         raise _unauthorized("Token has expired")
     except pyjwt.InvalidTokenError:
         raise _unauthorized("Invalid token")
+
+    scope = payload.get("scope", "api")
+    if scope not in expected_scopes:
+        # A stream token must not be replayable against the JSON API.
+        raise _unauthorized(f"Token scope '{scope}' not valid for this endpoint")
+    return TokenData(username=payload.get("sub"), role=payload.get("role"))
 
 
 def _unauthorized(detail: str) -> HTTPException:
@@ -136,51 +209,65 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 def require_auth(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
 ) -> TokenData:
-    """
-    Dependency — inject into any route to require a valid Bearer token.
-    Returns the decoded TokenData (username + role).
-    """
+    """Require a valid Bearer token. Returns decoded TokenData."""
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _unauthorized("Missing or invalid Authorization header")
     return decode_token(credentials.credentials)
 
 
 def require_operator(token: TokenData = Depends(require_auth)) -> TokenData:
-    """Dependency — allow operator or admin role."""
     if token.role not in ("operator", "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operator or admin role required",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Operator or admin role required")
     return token
 
 
 def require_admin(token: TokenData = Depends(require_auth)) -> TokenData:
-    """Dependency — allow admin role only."""
     if token.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Admin role required")
     return token
 
 
-# ─── Login endpoint helper (imported in main.py) ──────────────────────────────
+# ─── Login ────────────────────────────────────────────────────────────────────
 
 def login(payload: LoginRequest) -> LoginResponse:
     """
     Validate credentials and return a JWT.
-    Called by the POST /auth/login route in main.py.
+
+    Compares with hmac.compare_digest so response time does not leak how much
+    of the password was correct, and always runs a comparison even for unknown
+    usernames so valid/invalid usernames are not distinguishable by timing.
     """
-    user = _USERS.get(payload.username)
-    if user is None or user["password"] != payload.password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-        )
-    token = create_access_token(payload.username, user["role"])
+    users = _users()
+    user = users.get(payload.username)
+    supplied = payload.password.encode()
+    expected = (user["password"] if user else secrets.token_hex(32)).encode()
+    ok = hmac.compare_digest(supplied, expected)
+
+    if user is None or not ok or not user["password"]:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect username or password")
+
     return LoginResponse(
-        access_token=token,
+        access_token=create_access_token(payload.username, user["role"]),
         role=user["role"],
         expires_in=EXPIRE_HOURS * 3600,
     )
+
+
+def issue_stream_token(token: TokenData, minutes: float = 60.0) -> dict:
+    """
+    Short-lived token for MJPEG stream URLs.
+
+    An <img src="..."> cannot set an Authorization header, so the stream
+    endpoint accepts ?token=. That token is deliberately scoped 'stream' and
+    short-lived: it lands in browser history, referrer headers and server
+    logs, so it must not be usable against the JSON API.
+    """
+    return {
+        "stream_token": create_access_token(
+            token.username or "unknown", token.role or "operator",
+            expire_hours=minutes / 60.0, scope="stream"),
+        "expires_in": int(minutes * 60),
+    }

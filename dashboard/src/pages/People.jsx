@@ -1,25 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import { getToken as sdGetToken, mediaUrl } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-/* ── Auth (same pattern as Alerts.jsx) ─────────────── */
+/* Auth comes from the shared session established at sign-in (src/auth.js).
+   The hardcoded credentials that used to live here were served to every
+   visitor in the JS bundle — removed 2026-08-01. */
 function getToken() {
-  return localStorage.getItem('smartdetect_token')
+  return sdGetToken()
 }
 
 async function ensureToken() {
-  let token = getToken()
-  if (token) return token
-  try {
-    const res = await axios.post(`${API}/auth/login`, { username: 'operator', password: 'smartOp2024' })
-    token = res.data.access_token
-    localStorage.setItem('smartdetect_token', token)
-    return token
-  } catch {
-    return null
-  }
+  return sdGetToken()
 }
 
 function authHeaders(token) {
@@ -75,7 +69,7 @@ function PersonAppearances({ code }) {
                 width: 92, height: 92, borderRadius: 8, overflow: 'hidden',
                 background: '#f0f0f0', border: '0.5px solid #e8e8e8',
               }}>
-                <img src={`${API}/${a.snapshot}`} alt=""
+                <img src={mediaUrl(a.snapshot)} alt=""
                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                      onError={e => { e.target.parentElement.style.display = 'none' }} />
               </div>
@@ -143,7 +137,7 @@ function DuplicateSuggestions({ onMerged }) {
                 width: 30, height: 30, borderRadius: 6, overflow: 'hidden',
                 background: '#f0f0f0', flexShrink: 0,
               }}>
-                {ph && <img src={`${API}/${ph}`} alt=""
+                {ph && <img src={mediaUrl(ph)} alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={e => { e.target.style.display = 'none' }} />}
               </div>
@@ -209,7 +203,7 @@ function PersonRow({ p, onSaved, expanded, onToggle }) {
   }
 
   const tc = TYPE_COLORS[p.person_type] || TYPE_COLORS.unknown
-  const photoUrl = p.photo_path ? `${API}/${p.photo_path.replace(/^snapshots\//, 'snapshots/')}` : null
+  const photoUrl = p.photo_path ? mediaUrl(p.photo_path.replace(/^snapshots\//, 'snapshots/')) : null
 
   return (
     <div style={{ borderBottom: '0.5px solid #f7f8fa', background: expanded ? '#fbfbfc' : 'transparent' }}>

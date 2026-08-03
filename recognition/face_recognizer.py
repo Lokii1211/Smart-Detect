@@ -14,10 +14,41 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
+from config.identity_config import get_identity_config
+
 logger = logging.getLogger(__name__)
 
 # Set SMARTDETECT_STUB_MODE=1 to bypass real InsightFace (useful for E2E tests)
 _FORCE_STUB = os.getenv("SMARTDETECT_STUB_MODE", "0") == "1"
+
+
+def _resolve_providers() -> List[str]:
+    """
+    ONNX Runtime execution providers, fastest-available first, CPU last.
+
+    Hardware acceleration is opportunistic: we ask onnxruntime what it
+    actually has rather than assuming, so the same code runs on Apple
+    silicon (CoreML -> ANE/GPU), NVIDIA (CUDA), and plain CPU boxes without
+    branching on platform.
+
+    SMARTDETECT_ONNX_PROVIDERS overrides entirely, e.g.
+        SMARTDETECT_ONNX_PROVIDERS=CPUExecutionProvider
+    to pin the pre-2026-08 behaviour.
+    """
+    override = os.getenv("SMARTDETECT_ONNX_PROVIDERS", "").strip()
+    if override:
+        return [p.strip() for p in override.split(",") if p.strip()]
+
+    try:
+        import onnxruntime as ort
+        available = set(ort.get_available_providers())
+    except Exception:
+        return ["CPUExecutionProvider"]
+
+    preferred = ["CUDAExecutionProvider", "CoreMLExecutionProvider"]
+    chosen = [p for p in preferred if p in available]
+    chosen.append("CPUExecutionProvider")   # always keep a fallback
+    return chosen
 
 
 # ─── Lightweight stub when insightface is not installed ──────────────────────
@@ -75,14 +106,17 @@ class FaceRecognizer:
     def __init__(
         self,
         model_name: str = "buffalo_l",
-        # 320px halved detection recall on sub-50px faces (measured on
-        # face-demographics-walking.mp4) — 640 is InsightFace's own default.
-        det_size: Tuple[int, int] = (640, 640),
-        det_thresh: float = 0.35,
+        # None => pulled from config/identity_config.py (face_detector_size /
+        # face_detector_min_score) so this class's defaults track the single
+        # source of truth. Pass explicit values (as cameras/camera_processor.py
+        # does) to override the config for that instance.
+        det_size: Optional[Tuple[int, int]] = None,
+        det_thresh: Optional[float] = None,
     ) -> None:
+        cfg = get_identity_config()
         self.model_name = model_name
-        self.det_size = det_size
-        self.det_thresh = det_thresh
+        self.det_size = det_size if det_size is not None else cfg.face_detector_size
+        self.det_thresh = det_thresh if det_thresh is not None else cfg.face_detector_min_score
         self._app = None
         self._stub_mode = False
 
@@ -109,9 +143,22 @@ class FaceRecognizer:
         try:
             from insightface.app import FaceAnalysis  # lazy import
 
+            # ── Execution provider selection ────────────────────────────────
+            # InsightFace is by far the most expensive stage in the pipeline
+            # (83% of per-frame time, measured — eval/profile_pipeline.py).
+            # onnxruntime ships CoreMLExecutionProvider on Apple silicon, which
+            # runs the ONNX graphs on the ANE/GPU: measured 182 -> 38 ms/frame
+            # (4.8x) on an M5 with identical detections.
+            #
+            # CPU is always appended as a fallback so any op CoreML cannot
+            # handle still executes rather than failing the whole session.
+            # Override with SMARTDETECT_ONNX_PROVIDERS (comma-separated) —
+            # set it to "CPUExecutionProvider" to force the old behaviour if a
+            # platform's CoreML implementation ever produces different output.
+            providers = _resolve_providers()
             self._app = FaceAnalysis(
                 name=self.model_name,
-                providers=["CPUExecutionProvider"],
+                providers=providers,
             )
             self._app.prepare(
                 ctx_id=0,

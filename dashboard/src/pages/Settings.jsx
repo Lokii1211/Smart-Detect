@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
+import { getToken as sdGetToken } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -15,21 +16,15 @@ const CONFIG_FIELDS = [
   { key: 'insightface_det_size',    label: 'InsightFace Det Size',     type: 'select', options: [128, 160, 320, 640], unit: 'px' },
 ]
 
+/* Auth comes from the shared session established at sign-in (src/auth.js).
+   The hardcoded credentials that used to live here were served to every
+   visitor in the JS bundle — removed 2026-08-01. */
 function getToken() {
-  return localStorage.getItem('smartdetect_token')
+  return sdGetToken()
 }
 
 async function ensureToken() {
-  let token = getToken()
-  if (token) return token
-  try {
-    const res = await axios.post(`${API}/auth/login`, { username: 'admin', password: 'smartAdmin2024' })
-    token = res.data.access_token
-    localStorage.setItem('smartdetect_token', token)
-    return token
-  } catch {
-    return null
-  }
+  return sdGetToken()
 }
 
 export default function Settings() {

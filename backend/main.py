@@ -3,35 +3,30 @@ backend/main.py
 ────────────────
 FastAPI application for SmartDetect — Universal Camera Detection System.
 
-Endpoints
-─────────
-POST /auth/login              — Obtain a JWT token
-GET  /health                  — Health check (public)
-POST /register                — Register a person [operator+]
-GET  /person/{code}/trail     — Movement trail [operator+]
-POST /sighting                — Log a sighting [operator+]
-GET  /locations               — List locations [operator+]
-POST /locations               — Create location [admin]
-GET  /persons                 — List all persons [operator+]
-GET  /persons/live            — Currently visible persons [operator+]
-GET  /cameras                 — List cameras grouped by location [operator+]
-POST /cameras                 — Create a camera [operator+]
-DELETE /cameras/{id}          — Delete a camera [operator+]
-POST /camera/start            — Start a camera stream [operator+]
-POST /camera/stop             — Stop a specific camera stream [operator+]
-POST /camera/stop-all         — Stop all camera streams [operator+]
-GET  /camera/status           — Multi-camera status [operator+]
-GET  /camera/stream/{id}      — MJPEG live stream [public]
-GET  /camera/detections/recent— Recent detections [operator+]
-GET  /logs                    — Recent log lines [admin]
-POST /search/by-photo         — Photo search [public]
-GET  /analytics/count/live    — Live count [public]
+AUTHENTICATION — DEFAULT DENY (2026-08-01)
+──────────────────────────────────────────
+Every route requires a valid JWT unless listed in PUBLIC_ROUTES below. Only
+two entries are public: POST /auth/login (credential exchange) and
+GET /health (liveness probe). Adding a new route without a dependency now
+fails CLOSED — it is protected by the middleware, not accidentally exposed.
+
+Also enforced outside the router, where FastAPI dependencies do not reach:
+  * /snapshots/**  — StaticFiles serving photographs of identifiable people
+  * /docs, /redoc, /openapi.json — protected unless SMARTDETECT_PUBLIC_DOCS=1
+
+MJPEG streams cannot send an Authorization header from <img src=...>, so
+GET /camera/stream/{id} additionally accepts ?token= carrying a short-lived
+token minted by POST /auth/stream-token. Those tokens are scoped 'stream'
+and are rejected by every JSON endpoint.
+
+Run scripts/audit_routes.py for the authoritative, live route/auth table.
 """
 
 from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import logging
 import threading
 from typing import Any, Dict, List, Optional, Union
@@ -40,7 +35,7 @@ import cv2
 import numpy as np
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -62,6 +57,7 @@ from backend.auth import (
     require_operator, require_admin,
 )
 from backend.logger import get_structured_logger, read_recent_logs
+from backend import governance as _gov
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = get_structured_logger(__name__)
@@ -76,13 +72,132 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+import os as _os
+
+# CORS. allow_origins=["*"] with allow_credentials=True is rejected by
+# browsers and is wrong for a credentialed API, so origins are explicit.
+_ALLOWED_ORIGINS = [
+    o.strip() for o in _os.getenv(
+        "SMARTDETECT_CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEFAULT-DENY AUTHENTICATION
+#
+# Every route requires a valid token unless its (method, path) appears in
+# PUBLIC_ROUTES below. A newly added route is therefore protected by default:
+# forgetting a dependency fails closed, not open. Per-route dependencies
+# (require_operator / require_admin) still apply on top for role checks.
+#
+# Adding anything here means deliberately publishing it to the internet.
+# Justify each entry.
+# ─────────────────────────────────────────────────────────────────────────────
+PUBLIC_ROUTES: set = {
+    # Credential exchange — cannot require a token to obtain a token.
+    ("POST", "/auth/login"),
+    # Liveness probe for load balancers / orchestrators. Returns {"status":"ok"}
+    # and nothing else: no counts, no identities, no configuration.
+    ("GET", "/health"),
+}
+
+# FastAPI's own docs. Schema disclosure only (no data), but it maps the whole
+# attack surface, so it is protected unless explicitly opened for development.
+_PUBLIC_DOCS = _os.getenv("SMARTDETECT_PUBLIC_DOCS", "0") == "1"
+_DOC_PATHS = {"/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
+
+
+@app.middleware("http")
+async def enforce_default_deny_auth(request: Request, call_next):
+    """
+    Reject unauthenticated requests to anything not explicitly public.
+
+    Runs before routing resolves path parameters, so it matches on the raw
+    path for docs/static and on the resolved route template for API routes.
+    """
+    method = request.method
+    path = request.url.path
+
+    # CORS preflight carries no credentials by design.
+    if method == "OPTIONS":
+        return await call_next(request)
+
+    if path in _DOC_PATHS:
+        if _PUBLIC_DOCS:
+            return await call_next(request)
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "API documentation requires authentication. "
+                               "Set SMARTDETECT_PUBLIC_DOCS=1 for local development."},
+        )
+
+    # Snapshot images: photographs of identifiable people. Served by
+    # StaticFiles, which has no dependency injection, so it is enforced here.
+    if path.startswith("/snapshots"):
+        if not _has_valid_token(request, ("api", "stream")):
+            return JSONResponse(status_code=401,
+                                content={"detail": "Authentication required"})
+        return await call_next(request)
+
+    # Resolve the route template (e.g. /persons/{unique_code}) so the
+    # allowlist cannot be bypassed by a crafted concrete path.
+    matched = _match_route(request)
+    if matched and (method, matched) in PUBLIC_ROUTES:
+        return await call_next(request)
+
+    # Unknown paths fall through to FastAPI's 404 — but only after auth, so
+    # an unauthenticated caller cannot enumerate which routes exist.
+    scopes = ("api", "stream") if (matched or "").startswith("/camera/stream") else ("api",)
+    if not _has_valid_token(request, scopes):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authentication required"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await call_next(request)
+
+
+def _match_route(request: Request) -> Optional[str]:
+    """Route template for this request, or None if nothing matches."""
+    from starlette.routing import Match
+    for route in app.routes:
+        try:
+            match, _ = route.matches(request.scope)
+        except Exception:
+            continue
+        if match is not Match.NONE:
+            return getattr(route, "path", None)
+    return None
+
+
+def _has_valid_token(request: Request, scopes: tuple = ("api",)) -> bool:
+    """
+    True when the request carries a valid JWT, via the Authorization header
+    or — for stream/snapshot URLs used in <img src=...>, which cannot set
+    headers — a ?token= query parameter.
+    """
+    from backend.auth import decode_token
+    raw = None
+    header = request.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):
+        raw = header.split(" ", 1)[1].strip()
+    elif "token" in request.query_params:
+        raw = request.query_params["token"]
+    if not raw:
+        return False
+    try:
+        decode_token(raw, expected_scopes=scopes)
+        return True
+    except HTTPException:
+        return False
 
 # Person snapshot photos (registration + sightings) — written by the camera
 # pipeline under ./snapshots/{SDT-code}/
@@ -115,6 +230,12 @@ MAX_STREAMS = 4
 
 @app.on_event("startup")
 def startup_event() -> None:
+    # Refuse to serve a biometric database with missing or default-valued
+    # credentials. Raising here aborts startup — see backend/auth.py.
+    from backend.auth import require_configured
+    require_configured()
+    logger.info("startup", message="Auth configuration validated.")
+
     try:
         init_db()
         logger.info("startup", message="Database initialised successfully.")
@@ -122,8 +243,19 @@ def startup_event() -> None:
         logger.error("startup", message=f"Database initialisation failed: {exc}")
         return
 
-    # ── Auto-start default webcam ────────────────────────────────────────────
+    # ── Identity-arbitration config ──────────────────────────────────────────
+    # Logged in full so it's obvious from the logs alone which parameters and
+    # feature flags a given run used — critical for ablation reproducibility.
     import os
+    from config.identity_config import get_identity_config
+    identity_cfg = get_identity_config()
+    logger.info("startup", message=(
+        f"Identity config active (source="
+        f"{os.getenv('SMARTDETECT_IDENTITY_CONFIG') or 'defaults'}): "
+        f"{identity_cfg.as_loggable_dict()}"
+    ))
+
+    # ── Auto-start default webcam ────────────────────────────────────────────
     if os.getenv("SMARTDETECT_NO_AUTOSTART", "0") != "1":
         try:
             from cameras.live_stream import LiveStream
@@ -257,10 +389,25 @@ class CameraCreateRequest(BaseModel):
 
 @app.post("/auth/login", response_model=LoginResponse, tags=["Auth"])
 def login(request: Request, payload: LoginRequest) -> LoginResponse:
-    _check_rate_limit(request, max_calls=20, window_seconds=60)
+    # Brute-force throttle. Keyed per client IP by _check_rate_limit.
+    _check_rate_limit(request, max_calls=10, window_seconds=60)
     result = _auth_login(payload)
     logger.info("auth.login", message=f"Login by user='{payload.username}' role='{result.role}'")
     return result
+
+
+@app.post("/auth/stream-token", tags=["Auth"])
+def stream_token(token: TokenData = Depends(require_operator)) -> Dict[str, Any]:
+    """
+    Mint a short-lived token for MJPEG <img src=...> URLs, which cannot carry
+    an Authorization header.
+
+    Scoped 'stream' so it is rejected by the JSON API: these tokens end up in
+    browser history, referrer headers and access logs, so they must not be
+    replayable for data access. Valid 60 minutes.
+    """
+    from backend.auth import issue_stream_token
+    return issue_stream_token(token, minutes=60.0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -311,10 +458,17 @@ def register(
 
 @app.get("/person/{unique_code}/trail", response_model=List[TrailItem], tags=["Person"])
 def person_trail(
+    request:     Request,
     unique_code: str,
     db:          Session   = Depends(get_db),
     token:       TokenData = Depends(require_operator),
 ) -> List[Dict[str, Any]]:
+    """Movement history for one identity — where they were, when, on which
+    camera. Audited: this is the most revealing read in the API."""
+    _check_rate_limit(request, max_calls=60, window_seconds=60)
+    _gov.audit(db, actor=token.username or "unknown", action="person.trail",
+               subject_code=unique_code, outcome="ok", actor_role=token.role,
+               actor_ip=_gov.client_ip(request))
     return get_person_trail(unique_code, db=db)
 
 
@@ -341,8 +495,12 @@ def record_sighting(
 
 @app.get("/persons", tags=["Person"])
 def list_persons(
-    db: Session = Depends(get_db),
+    request: Request,
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
 ) -> List[Dict[str, Any]]:
+    # Enumeration of every tracked identity — throttled even for operators.
+    _check_rate_limit(request, max_calls=30, window_seconds=60)
     try:
         persons = db.query(Person).order_by(Person.created_at.desc()).all()
         return [
@@ -392,6 +550,168 @@ def update_person(
         "display_name": person.display_name,
         "person_type":  person.person_type,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Data governance — retention, erasure, consent, audit
+# See docs/DATA_GOVERNANCE.md and backend/governance.py
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ConsentRequest(BaseModel):
+    consent_status: str = Field(..., description="consented | dataset | unknown")
+    consent_ref:    Optional[str] = Field(None, max_length=128,
+                                          description="signed-form ID or dataset licence reference")
+
+
+@app.delete("/persons/{unique_code}", tags=["Governance"])
+def erase_person_route(
+    request:     Request,
+    unique_code: str,
+    reason:      str       = Query("subject_request",
+                                   description="subject_request | consent_withdrawn | operator"),
+    db:          Session   = Depends(get_db),
+    token:       TokenData = Depends(require_admin),
+) -> Dict[str, Any]:
+    """
+    Erase every trace of one identity: embeddings, face-template gallery,
+    re-ID vector, dress colour, all sightings, and all snapshot images.
+
+    Admin-only and irreversible. Returns a verified receipt — the server
+    re-queries the database and re-stats the filesystem after deleting, so
+    `verified: true` means checked, not assumed.
+
+    Implements the DPDP Act s.12(3) right to erasure and the s.8(7) duty to
+    erase on consent withdrawal.
+    """
+    from backend import governance as gov
+    ip = gov.client_ip(request)
+    try:
+        return gov.erase_person(db, unique_code, actor=token.username or "unknown",
+                                reason=reason, actor_ip=ip)
+    except LookupError:
+        gov.audit(db, actor=token.username or "unknown", action="person.erase",
+                  subject_code=unique_code, outcome="not_found", actor_ip=ip)
+        raise HTTPException(status_code=404, detail=f"Person '{unique_code}' not found.")
+    except PermissionError as exc:
+        gov.audit(db, actor=token.username or "unknown", action="person.erase",
+                  subject_code=unique_code, outcome="denied_legal_hold", actor_ip=ip)
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.put("/persons/{unique_code}/consent", tags=["Governance"])
+def set_consent_route(
+    request:     Request,
+    unique_code: str,
+    payload:     ConsentRequest,
+    db:          Session   = Depends(get_db),
+    token:       TokenData = Depends(require_operator),
+) -> Dict[str, Any]:
+    """
+    Record the lawful basis for processing this identity, and re-derive its
+    retention date from it.
+
+    'unknown' (the default for anyone auto-registered from a camera) carries
+    the shortest retention precisely because no lawful basis has been
+    established for them.
+    """
+    from backend import governance as gov
+    try:
+        return gov.set_consent(db, unique_code, payload.consent_status,
+                               actor=token.username or "unknown",
+                               consent_ref=payload.consent_ref,
+                               actor_ip=gov.client_ip(request))
+    except LookupError:
+        raise HTTPException(status_code=404, detail=f"Person '{unique_code}' not found.")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/governance/retention", tags=["Governance"])
+def retention_status_route(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> Dict[str, Any]:
+    """Active retention policy, population by consent status, and how many
+    identities are already past their retention date."""
+    from backend import governance as gov
+    return gov.retention_status(db)
+
+
+@app.post("/governance/purge", tags=["Governance"])
+def purge_route(
+    request: Request,
+    dry_run: bool      = Query(True, description="true (default) reports without deleting"),
+    db:      Session   = Depends(get_db),
+    token:   TokenData = Depends(require_admin),
+) -> Dict[str, Any]:
+    """
+    Run the retention purge. Defaults to dry_run=true — pass dry_run=false to
+    actually delete. Admin-only; every erasure produces its own receipt.
+    """
+    from backend import governance as gov
+    return gov.purge(db, actor=token.username or "unknown", dry_run=dry_run)
+
+
+@app.get("/governance/audit", tags=["Governance"])
+def audit_log_route(
+    subject_code: Optional[str] = Query(None, description="filter by SDT code"),
+    actor:        Optional[str] = Query(None, description="filter by username"),
+    action:       Optional[str] = Query(None),
+    limit:        int           = Query(200, ge=1, le=1000),
+    db:           Session       = Depends(get_db),
+    token:        TokenData     = Depends(require_admin),
+) -> List[Dict[str, Any]]:
+    """
+    Who accessed whose biometric data, when, and with what result.
+
+    Admin-only: the log itself is personal data (it links operators to the
+    people they looked up). Supports answering a data-subject's "who has
+    accessed my data?" request via ?subject_code=.
+    """
+    from database.models import AuditLog
+    q = db.query(AuditLog)
+    if subject_code:
+        q = q.filter(AuditLog.subject_code == subject_code)
+    if actor:
+        q = q.filter(AuditLog.actor == actor)
+    if action:
+        q = q.filter(AuditLog.action == action)
+    rows = q.order_by(AuditLog.occurred_at.desc()).limit(limit).all()
+    return [{
+        "occurred_at": r.occurred_at.isoformat() + "Z",
+        "actor": r.actor, "actor_role": r.actor_role, "actor_ip": r.actor_ip,
+        "action": r.action, "subject_code": r.subject_code,
+        "outcome": r.outcome,
+        "detail": json.loads(r.detail) if r.detail else None,
+    } for r in rows]
+
+
+@app.get("/governance/erasures", tags=["Governance"])
+def erasure_receipts_route(
+    unique_code: Optional[str] = Query(None),
+    limit:       int           = Query(100, ge=1, le=500),
+    db:          Session       = Depends(get_db),
+    token:       TokenData     = Depends(require_admin),
+) -> List[Dict[str, Any]]:
+    """
+    Proof-of-deletion receipts. These survive the identities they refer to and
+    contain no biometric data — they are how you demonstrate an erasure
+    request was honoured.
+    """
+    from database.models import ErasureReceipt
+    q = db.query(ErasureReceipt)
+    if unique_code:
+        q = q.filter(ErasureReceipt.unique_code == unique_code)
+    rows = q.order_by(ErasureReceipt.erased_at.desc()).limit(limit).all()
+    return [{
+        "receipt_id": r.id, "unique_code": r.unique_code,
+        "erased_at": r.erased_at.isoformat() + "Z", "erased_by": r.erased_by,
+        "reason": r.reason, "verified": r.verified,
+        "sightings_deleted": r.sightings_deleted,
+        "snapshots_deleted": r.snapshots_deleted,
+        "embeddings_cleared": r.embeddings_cleared,
+        "detail": json.loads(r.detail) if r.detail else None,
+    } for r in rows]
 
 
 @app.post("/persons/{source_code}/merge-into/{target_code}", tags=["Person"])
@@ -472,16 +792,24 @@ def merge_person(
 
 @app.get("/persons/duplicate-suggestions", tags=["Person"])
 def duplicate_suggestions(
-    db:    Session   = Depends(get_db),
-    token: TokenData = Depends(require_operator),
+    request: Request,
+    db:      Session   = Depends(get_db),
+    token:   TokenData = Depends(require_operator),
 ) -> List[Dict[str, Any]]:
     """
     Pairs of SDT codes whose stored face galleries look like the same person
-    (max cross-gallery cosine similarity >= 0.50). Sorted most-similar first;
-    the operator confirms with the merge endpoint.
+    (max cross-gallery cosine similarity >= IdentityConfig.duplicate_suggestion_threshold,
+    default 0.50). Sorted most-similar first; the operator confirms with the
+    merge endpoint.
     """
+    # O(n^2) gallery comparison — expensive and identity-revealing.
+    _check_rate_limit(request, max_calls=10, window_seconds=60)
     import json as _json
     import numpy as _np
+
+    from config.identity_config import get_identity_config
+    cfg = get_identity_config()
+    threshold = cfg.duplicate_suggestion_threshold
 
     persons = db.query(Person).filter(Person.face_embedding.isnot(None)).all()
     vecs: List[tuple] = []
@@ -508,16 +836,47 @@ def duplicate_suggestions(
                         continue
                     sim = float(_np.dot(a, b)) / (na * (float(_np.linalg.norm(b)) + 1e-8))
                     best = max(best, sim)
-            if best >= 0.50:
+            if best >= threshold:
+                band, guidance = _merge_confidence_band(best, cfg)
                 out.append({
                     "code_a": pa.unique_code, "name_a": pa.display_name,
                     "photo_a": pa.photo_path,
                     "code_b": pb.unique_code, "name_b": pb.display_name,
                     "photo_b": pb.photo_path,
                     "similarity": round(best, 3),
+                    "confidence_band": band,          # high | medium | low
+                    "guidance": guidance,             # what the operator should do
+                    "auto_merge": False,              # ALWAYS false — see below
                 })
     out.sort(key=lambda d: -d["similarity"])
     return out
+
+
+def _merge_confidence_band(similarity: float, cfg) -> tuple:
+    """
+    Band a duplicate suggestion so the operator knows how much scrutiny it
+    needs. Bands are advisory ONLY.
+
+    NOTHING AUTO-MERGES, AT ANY CONFIDENCE.
+    ───────────────────────────────────────
+    Merging is irreversible and destroys one identity's code, so a wrong
+    auto-merge silently fuses two real people — the exact failure the whole
+    identity-hardening effort exists to prevent, and one that would be
+    invisible afterwards because the evidence trails are already combined.
+    A high band means "look at this first", never "this is safe to apply
+    without looking". `auto_merge` is hard-coded False and there is no code
+    path that merges without an explicit operator POST.
+    """
+    hi = getattr(cfg, "merge_band_high", 0.80)
+    med = getattr(cfg, "merge_band_medium", 0.65)
+    if similarity >= hi:
+        return "high", ("Very likely the same person. Compare the two photos, "
+                        "then merge if they match.")
+    if similarity >= med:
+        return "medium", ("Probably the same person. Check pose and lighting "
+                          "differ rather than the face.")
+    return "low", ("Possible match only — near the detection floor. Look-alikes "
+                   "land here. Do not merge without clear photographic evidence.")
 
 
 def _names_for(codes: List[str], db: Session) -> Dict[str, str]:
@@ -532,7 +891,10 @@ def _names_for(codes: List[str], db: Session) -> Dict[str, str]:
 
 
 @app.get("/persons/live", tags=["Person"])
-def live_persons(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
+def live_persons(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> List[Dict[str, Any]]:
     all_live: List[Dict] = []
     for stream in active_streams.values():
         try:
@@ -559,13 +921,19 @@ def live_persons(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
 # NOTE: registered after /persons/live so "live" is never captured as a code
 @app.get("/persons/{unique_code}", tags=["Person"])
 def person_detail(
+    request:     Request,
     unique_code: str,
-    db:          Session = Depends(get_db),
+    db:          Session   = Depends(get_db),
+    token:       TokenData = Depends(require_operator),
 ) -> Dict[str, Any]:
     """
     Full person detail: identity fields + every appearance (sightings with
     snapshot frames) — powers the "click the ID, see them in the video" view.
     """
+    _check_rate_limit(request, max_calls=60, window_seconds=60)
+    _gov.audit(db, actor=token.username or "unknown", action="person.read",
+               subject_code=unique_code, outcome="ok", actor_role=token.role,
+               actor_ip=_gov.client_ip(request))
     person = db.query(Person).filter(Person.unique_code == unique_code).first()
     if not person:
         raise HTTPException(status_code=404, detail=f"Person '{unique_code}' not found.")
@@ -969,7 +1337,10 @@ def camera_stop_all(
 
 
 @app.get("/camera/status", tags=["Camera"])
-def camera_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def camera_status(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> Dict[str, Any]:
     """Return status of all cameras (active and inactive)."""
     all_cams = db.query(CameraModel).all()
     total = len(all_cams)
@@ -1027,8 +1398,9 @@ def camera_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
 
 @app.get("/camera/detections/recent", tags=["Camera"])
 def camera_detections_recent(
-    limit: int = Query(20, ge=1, le=100),
-    db:    Session = Depends(get_db),
+    limit: int       = Query(20, ge=1, le=100),
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
 ) -> List[Dict[str, Any]]:
     """Recent detections — in-memory first, then DB fallback."""
     if active_streams:
@@ -1134,8 +1506,11 @@ class PhotoSearchRequest(BaseModel):
 def search_by_photo(
     request: Request,
     payload: PhotoSearchRequest,
-    db:      Session = Depends(get_db),
+    db:      Session   = Depends(get_db),
+    token:   TokenData = Depends(require_operator),
 ) -> Dict[str, Any]:
+    # Face search against the entire biometric gallery: the single most
+    # abusable endpoint here. Explicit role check plus a tight throttle.
     _check_rate_limit(request, max_calls=15, window_seconds=60)
     import base64 as _b64
     from datetime import datetime, timezone, timedelta
@@ -1171,6 +1546,13 @@ def search_by_photo(
     cameras_searched = max(len(active_streams), 1)
 
     if not match:
+        # Audit even a miss: an unsuccessful search still processed a face
+        # image against the whole gallery, and the pattern of who is being
+        # searched for is itself the thing that needs oversight.
+        _gov.audit(db, actor=token.username or "unknown", action="search.by_photo",
+                   outcome="no_match", actor_role=token.role,
+                   actor_ip=_gov.client_ip(request),
+                   detail={"scope": payload.scope, "cameras_searched": cameras_searched})
         return {
             "matched": False, "face_detected": True,
             "cameras_searched": cameras_searched,
@@ -1179,6 +1561,11 @@ def search_by_photo(
 
     unique_code = match["unique_code"]
     confidence  = match["similarity"]
+    _gov.audit(db, actor=token.username or "unknown", action="search.by_photo",
+               subject_code=unique_code, outcome="matched", actor_role=token.role,
+               actor_ip=_gov.client_ip(request),
+               detail={"confidence": round(float(confidence), 4),
+                       "scope": payload.scope})
     trail = get_person_trail(unique_code, db=db)
 
     now_ts = datetime.now(timezone.utc)
@@ -1236,7 +1623,8 @@ def search_by_photo(
 def list_object_sightings(
     limit: int = Query(50, ge=1, le=200),
     object_type: Optional[str] = Query(None, description="Filter by type: backpack, car, etc."),
-    db: Session = Depends(get_db),
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
 ) -> List[Dict[str, Any]]:
     from database.models import ObjectSighting
     q = db.query(ObjectSighting).order_by(ObjectSighting.detected_at.desc())
@@ -1260,7 +1648,10 @@ def list_object_sightings(
 
 
 @app.get("/objects/stats", tags=["Objects"])
-def object_stats(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def object_stats(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> Dict[str, Any]:
     from database.models import ObjectSighting
     from datetime import datetime, timezone
     from sqlalchemy import func
@@ -1338,7 +1729,10 @@ def _is_sqlite() -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/analytics/count/live", tags=["Analytics"])
-def analytics_live_count(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def analytics_live_count(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> Dict[str, Any]:
     from database.models import Sighting
     from datetime import datetime, timezone
     today = datetime.now(timezone.utc).replace(
@@ -1462,7 +1856,10 @@ def list_alerts(
 
 
 @app.get("/alerts/unread-count", tags=["Alerts"])
-def alerts_unread_count(db: Session = Depends(get_db)) -> Dict[str, int]:
+def alerts_unread_count(
+    db:    Session   = Depends(get_db),
+    token: TokenData = Depends(require_operator),
+) -> Dict[str, int]:
     from database.models import Alert
     try:
         count = db.query(Alert).filter(Alert.is_read == False).count()

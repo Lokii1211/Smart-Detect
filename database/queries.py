@@ -394,3 +394,44 @@ def check_watchlist_alert(
     except Exception as exc:
         db.rollback()
         logger.error("alert.watchlist_error", message=str(exc))
+
+
+def create_camera_offline_alert(camera_id: str, location_id: Optional[str],
+                                reason: str, db: Session) -> None:
+    """
+    Raise an operational alert when a camera stops producing frames.
+
+    Previously `camera_offline` existed only as a comment in models.py and a
+    label in the dashboard — the backend never emitted it, so a camera could
+    die silently while the UI showed a stale last frame. `crowd` was removed
+    rather than implemented: it needs a per-zone occupancy policy that does
+    not exist, and a guessed threshold would produce alerts nobody can act on.
+
+    Deduped for 5 minutes per camera so a flapping source cannot flood the
+    alert list.
+    """
+    now = datetime.now(timezone.utc).timestamp()
+    key = f"offline:{camera_id}"
+    if now - _watchlist_alert_cache.get(key, 0) < 300:
+        return
+    _watchlist_alert_cache[key] = now
+
+    alert = Alert(
+        alert_type="camera_offline",
+        severity="warning",
+        title=f"Camera {camera_id} offline",
+        message=f"Stopped producing frames: {reason}.",
+        unique_code=None,
+        camera_id=camera_id,
+        location_id=location_id,
+        is_read=False,
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+    try:
+        db.add(alert)
+        db.commit()
+        logger.info("alert.camera_offline",
+                    message=f"Camera {camera_id} offline: {reason}")
+    except Exception as exc:
+        db.rollback()
+        logger.error("alert.camera_offline_error", message=str(exc))

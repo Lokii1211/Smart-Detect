@@ -1,10 +1,47 @@
 """
-Identity purity evaluation for SmartDetect.
+╔══════════════════════════════════════════════════════════════════════════╗
+║  REGRESSION CHECK ONLY — NOT AN ACCURACY MEASURE.                        ║
+║  Do not cite this script's output as an accuracy or purity result.       ║
+║  For accuracy, use the ground-truth harness: eval/run_eval.py            ║
+║  (formulas: eval/METRICS.md).                                            ║
+╚══════════════════════════════════════════════════════════════════════════╝
 
-For every SDT code, embed the faces in all its saved snapshots
-(registration photo + sighting crops) and compute pairwise ArcFace cosine
-similarity. Snapshots of the SAME person sit well above 0.35; a pair below
-0.20 inside one code means two different people share that identity (merge).
+WHY THIS IS NOT AN ACCURACY MEASURE
+────────────────────────────────────
+This script scores the mutual face-similarity of snapshots stored under each
+SDT code. Those snapshots are not a neutral sample of the system's decisions:
+
+  1. cameras/live_stream.py writes a sighting snapshot ONLY when
+     _evidence_gate_ok() returns True.
+  2. That gate requires a gate-passing face matching the assigned code at
+     >= IdentityConfig.evidence_face_sim_threshold (default 0.45) cosine
+     similarity — or the code to have been freshly earned from that face.
+  3. This script then asks whether the faces in those snapshots are mutually
+     similar, at a 0.20 threshold.
+
+The sample is therefore FILTERED BY THE PROPERTY BEING MEASURED. Frames that
+would demonstrate contamination are precisely the frames the evidence gate
+refuses to save. Passing is close to guaranteed by construction, and the
+result cannot support an accuracy claim.
+
+(Partial independence remains: registration photos, `registered.jpg`, are
+written by SmartIdentifier at registration time and are NOT evidence-gated.
+So registration-vs-sighting comparisons carry some signal. This is why the
+script still has regression value — but only that.)
+
+WHAT IT IS STILL GOOD FOR
+─────────────────────────
+A fast, deterministic tripwire over an existing snapshots/ tree: it re-embeds
+stored crops with no pipeline run, so a threshold or logic change that starts
+merging obviously-different people will show up here in seconds. Use it as a
+pre-commit smoke check, and use eval/run_eval.py for any number you report.
+
+MECHANICS
+─────────
+For every SDT code, embed the faces in all its saved snapshots (registration
+photo + sighting crops) and compute pairwise ArcFace cosine similarity.
+Snapshots of the SAME person sit well above 0.35; a pair below 0.20 inside one
+code indicates two different people share that identity.
 """
 import os, sys, itertools
 from pathlib import Path

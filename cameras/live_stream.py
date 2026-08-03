@@ -34,6 +34,7 @@ from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from config.identity_config import get_identity_config
 from database.db import SessionLocal
 from database.models import Person
 from database.queries import log_sighting, check_watchlist_alert
@@ -70,7 +71,6 @@ _BOX_COLORS = {
     "face":             _GREEN,
     "dress_color":      _BLUE,
     "body_structure":   _BLUE,
-    "multi_feature":    _BLUE,
     "new_registration": _WHITE,
 }
 
@@ -87,38 +87,16 @@ _OBJECT_LABELS  = {
     "bottle":   "Bottle",
 }
 
-# A track must survive this many analysis cycles before a new SDT code
-# is registered — prevents one ghost person row per cycle.
-_MIN_TRACK_AGE_FOR_REGISTRATION = 3
-
 # Movement-trail length (analysis cycles) drawn behind each tracked person
 _TRAIL_LENGTH = 30
 
-# Faces smaller/blurrier than this are drawn but never decide identity —
-# far-away faces give noisy embeddings that cross-match strangers
-_MIN_FACE_HEIGHT_PX  = 48
-_MIN_FACE_DET_SCORE  = 0.60
-
-# Head-zoom second pass: tracked persons whose box has no face from the
-# full-frame scan get their head region re-scanned at up to 4x digital zoom.
-# Recovers faces the downscaled scan missed; the identity gate above still
-# applies to the mapped-back native size, so tiny faces stay identity-inert.
-_ZOOM_MIN_PERSON_H  = 140   # shorter boxes cannot hold a gate-passing face
-_ZOOM_MAX_CROPS     = 4     # nearest (tallest) persons first — CPU budget
-_ZOOM_TARGET_W      = 384.0 # upscale head crop to roughly this width
-_ZOOM_MAX           = 4.0
-
-# Cached-identity contradiction check: identity is cached per tracker id, so a
-# ByteTrack ID switch (person A occluded, person B inherits the track) silently
-# hands B person A's code. When a gate-passing face disagrees with the cached
-# code's stored face this many cycles in a row, drop the cache and re-identify.
-_FACE_CONTRADICT_SIM = 0.35
-_FACE_CONTRADICT_N   = 2
-
-# Sighting rows / photo evidence are filed only when a gate-passing face
-# agrees with the code at least this strongly (or the code was just earned
-# from that face). Labels still show for faceless tracks — evidence waits.
-_EVIDENCE_FACE_SIM = 0.45
+# Identity-arbitration parameters previously hardcoded here — min track age
+# for registration, face-quality gate, head-zoom pass, ID-switch contradiction
+# guard, evidence-gating similarity — now live in config/identity_config.py
+# (IdentityConfig) as the single source of truth. See self._identity_config,
+# set in LiveStream.__init__. Defaults are unchanged; override via the
+# SMARTDETECT_IDENTITY_CONFIG env var (config/ablation/*.json for ready-made
+# ablation configs).
 
 
 class LiveStream:
@@ -178,6 +156,7 @@ class LiveStream:
         self._track_codes: Dict[int, Dict] = {}   # tracker_id → {code, method, conf}
         self._track_age:   Dict[int, int]  = {}   # tracker_id → analysis cycles seen
         self._track_face_mismatch: Dict[int, int] = {}  # tracker_id → consecutive face contradictions
+        self._track_pose_defer: Dict[int, int] = {}     # tracker_id → consecutive pose-gate deferrals
         self._track_trails: Dict[int, deque] = {} # tracker_id → recent bbox centers
 
         # ── Stats ──────────────────────────────────────────────────────────
@@ -205,6 +184,9 @@ class LiveStream:
         # ── Dedup cache  ───────────────────────────────────────────────────
         # unique_code → last log timestamp; skip re-log within 30s
         self._seen_cache: Dict[str, float] = {}
+
+        # ── Identity-arbitration config (config/identity_config.py) ────────
+        self._identity_config = get_identity_config()
 
         # ── ML components (lazy-loaded to avoid startup crash) ─────────────
         self._detector   = None
@@ -413,6 +395,13 @@ class LiveStream:
                 if cam is not None:
                     cam.is_active = False
                     db.commit()
+                # Operational alert — the dashboard already renders
+                # alert_type='camera_offline'; nothing used to emit it, so a
+                # camera could die silently behind a stale last frame.
+                from database.queries import create_camera_offline_alert
+                create_camera_offline_alert(
+                    camera_id=self.camera_id, location_id=self.location_id,
+                    reason="video source reached end of stream", db=db)
             finally:
                 db.close()
         except Exception as exc:
@@ -541,9 +530,49 @@ class LiveStream:
             except Exception as exc:
                 logger.debug("Full-frame face detection error: %s", exc)
 
-        # ── Head-zoom second pass (see _ZOOM_* constants) ───────────────────
+        # ── Head-zoom second pass ────────────────────────────────────────────
+        # WHAT: the full-frame face scan above runs on a downscaled copy of
+        # the whole frame (self._face_scan_size — e.g. 640x480) for CPU speed.
+        # That downscale can shrink a real, close-enough face below what
+        # InsightFace's detector can find, even though the SAME face would be
+        # detectable if scanned at higher resolution. This pass gives tracked
+        # persons who came up faceless in the full-frame scan one more look,
+        # at native crop resolution, digitally zoomed in on just their head.
+        #
+        # WHEN it triggers: only for person boxes taller than
+        # zoom_min_person_height_px (default 140px — shorter boxes are too
+        # far away to hold a gate-passing face at all, not worth the CPU) AND
+        # not already matched to a face from the full-frame scan
+        # (_box_has_face). Candidates are sorted tallest/nearest first and
+        # capped at zoom_max_crops_per_frame (default 4) per analysis cycle —
+        # a CPU budget limit, not an accuracy one.
+        #
+        # HOW: crops the top ~45% of the person box (head/shoulders, plus a
+        # 20% horizontal margin), upscales it by 1.5x-zoom_max_factor
+        # (default up to 4x) toward roughly zoom_target_width_px pixels wide,
+        # and re-runs InsightFace detection on just that crop. Any face found
+        # has its bbox/landmarks mapped back from crop-and-zoom space into
+        # the ORIGINAL frame's native pixel coordinates, then appended to
+        # all_faces exactly as if the full-frame scan had found it directly.
+        #
+        # INTERACTION WITH THE FACE QUALITY GATE (face_quality_min_height_px /
+        # face_quality_min_det_score, applied later in this method): this
+        # pass only improves DETECTION RECALL — it does not weaken the
+        # identity-decision quality bar. Because recovered face coordinates
+        # are mapped back to native frame size before the gate ever sees
+        # them, a face that's genuinely tiny in the source video still
+        # measures as tiny after zoom-recovery and still fails the height
+        # gate; the zoom only helps InsightFace's detector NOTICE a face that
+        # was already native-resolution large enough to pass the gate, but
+        # got lost in the full-frame scan's downscale. A face too small to
+        # ever pass the gate gains nothing from being zoomed in on.
         if self._face_rec and tracked:
             try:
+                zoom_min_h   = self._identity_config.zoom_min_person_height_px
+                zoom_max_n   = self._identity_config.zoom_max_crops_per_frame
+                zoom_target  = self._identity_config.zoom_target_width_px
+                zoom_max     = self._identity_config.zoom_max_factor
+
                 def _box_has_face(bx, by, bw, bh):
                     for f in all_faces:
                         fcx = (f.bbox[0] + f.bbox[2]) / 2
@@ -553,9 +582,9 @@ class LiveStream:
                     return False
 
                 faceless = [b for _, b in tracked
-                            if b[3] >= _ZOOM_MIN_PERSON_H and not _box_has_face(*b)]
+                            if b[3] >= zoom_min_h and not _box_has_face(*b)]
                 faceless.sort(key=lambda b: -b[3])
-                for bx, by, bw, bh in faceless[:_ZOOM_MAX_CROPS]:
+                for bx, by, bw, bh in faceless[:zoom_max_n]:
                     mx  = int(bw * 0.2)
                     cx0 = max(0, bx - mx)
                     cy0 = max(0, by - mx)
@@ -564,7 +593,7 @@ class LiveStream:
                     crop = frame[cy0:cy1, cx0:cx1]
                     if crop.size == 0:
                         continue
-                    zoom = min(_ZOOM_MAX, max(1.5, _ZOOM_TARGET_W / crop.shape[1]))
+                    zoom = min(zoom_max, max(1.5, zoom_target / crop.shape[1]))
                     zoomed = cv2.resize(crop, None, fx=zoom, fy=zoom)
                     self._face_rec.extract_embedding(zoomed)
                     for f in (getattr(self._face_rec, "_last_faces", []) or []):
@@ -625,15 +654,21 @@ class LiveStream:
                 # embeddings that cross-match strangers — draw them, but never
                 # let them decide identity (match OR register)
                 face_emb = None
+                face_pose = None
                 if matched_face is not None:
                     try:
                         fb_q = matched_face.bbox
                         face_h = float(fb_q[3] - fb_q[1])
                         det_sc = float(getattr(matched_face, "det_score", 1.0) or 1.0)
-                        if face_h >= _MIN_FACE_HEIGHT_PX and det_sc >= _MIN_FACE_DET_SCORE:
+                        if (face_h >= self._identity_config.face_quality_min_height_px
+                                and det_sc >= self._identity_config.face_quality_min_det_score):
                             face_emb = getattr(matched_face, "embedding", None)
                     except Exception:
                         face_emb = getattr(matched_face, "embedding", None)
+                    # Head pose from the landmarks InsightFace already returned.
+                    # Costs no inference; used only by the registration gate.
+                    from recognition.face_pose import estimate_pose
+                    face_pose = estimate_pose(getattr(matched_face, "kps", None))
 
                 # ── Identify: cached per tracker_id, registration age-gated ──
                 code, method, conf = "Detecting...", "pending", 0.0
@@ -645,25 +680,9 @@ class LiveStream:
                     self._track_age[tid] = self._track_age.get(tid, 0) + 1
                     cached = self._track_codes.get(tid)
 
-                    # ID-switch guard: a gate-passing face that contradicts the
-                    # cached code means the tracker likely handed this track to
-                    # a different person (occlusion swap). Two strikes → drop
-                    # the cache and re-identify from scratch.
-                    if cached and face_emb is not None:
-                        sim = self._face_sim_to_code(face_emb, cached["code"], db)
-                        if sim is not None and sim < _FACE_CONTRADICT_SIM:
-                            strikes = self._track_face_mismatch.get(tid, 0) + 1
-                            self._track_face_mismatch[tid] = strikes
-                            if strikes >= _FACE_CONTRADICT_N:
-                                logger.info(
-                                    "ID-switch suspected on track %s: face sim %.3f "
-                                    "to cached %s — re-identifying", tid, sim, cached["code"])
-                                self._track_codes.pop(tid, None)
-                                self.active_tracks.pop(tid, None)
-                                self._track_face_mismatch[tid] = 0
-                                cached = None
-                        else:
-                            self._track_face_mismatch[tid] = 0
+                    # ID-switch guard — see _apply_id_switch_guard() docstring
+                    # and IdentityConfig.enable_id_switch_guard.
+                    cached = self._apply_id_switch_guard(tid, cached, face_emb, db)
 
                     if cached:
                         code, method, conf = cached["code"], cached["method"], cached["conf"]
@@ -674,8 +693,9 @@ class LiveStream:
                                 frame, bbox, db,
                                 location_id=self.location_id,
                                 zone_id=self.zone_id,
-                                allow_new=self._track_age[tid] >= _MIN_TRACK_AGE_FOR_REGISTRATION,
+                                allow_new=self._track_age[tid] >= self._identity_config.min_track_age_for_registration,
                                 face_embedding=face_emb,
+                                face_pose=self._pose_for_registration(tid, face_pose),
                                 exclude_codes=claimed_codes,
                                 # full-frame scan already found every face —
                                 # a per-person InsightFace rerun just burns CPU
@@ -685,6 +705,7 @@ class LiveStream:
                             method = result["method"]
                             conf   = result["confidence"]
                             color_hex_from_id = result.get("color_hex")
+                            self._note_pose_deferral(tid, method)
                             # face/new_registration used face_emb as input, so
                             # the code is confirmed by this person's own face
                             fresh_face_id = (face_emb is not None and
@@ -766,23 +787,11 @@ class LiveStream:
                         carrying = _OBJECT_LABELS.get(obj["label"], "object")
                         break
 
-                # ── Log sighting (deduped) ──────────────────────────────────
-                # A track with contradiction strikes is mid-ID-switch — its
-                # code is suspect, so no photo evidence until it re-verifies
-                identity_in_doubt = (tid is not None
-                                     and self._track_face_mismatch.get(tid, 0) > 0)
-                # Evidence is face-confirmed only: a faceless box that inherited
-                # a code (cached track, colour/re-ID re-association) may keep
-                # its live label, but no sighting row or photo is filed until a
-                # gate-passing face agrees with the code. Closes the last merge
-                # path: track switch while the newcomer's face is not yet visible.
-                face_confirms = fresh_face_id
-                if (not face_confirms and code and code != "Detecting..."
-                        and face_emb is not None):
-                    sim_ev = self._face_sim_to_code(face_emb, code, db)
-                    face_confirms = sim_ev is not None and sim_ev >= _EVIDENCE_FACE_SIM
+                # ── Log sighting (deduped) — see _evidence_gate_ok() docstring
+                # and IdentityConfig.enable_evidence_gating ─────────────────
+                evidence_gate_ok = self._evidence_gate_ok(tid, code, face_emb, fresh_face_id, db)
                 if (code and code != "Detecting..."
-                        and not identity_in_doubt and face_confirms):
+                        and evidence_gate_ok):
                     if now - self._seen_cache.get(code, 0) > 30:
                         self._seen_cache[code] = now
                         self.persons_today += (1 if method == "new_registration" else 0)
@@ -951,7 +960,7 @@ class LiveStream:
             # Method + confidence below box
             method_short = {
                 "face": "Face", "dress_color": "Color",
-                "body_structure": "Body", "multi_feature": "Multi",
+                "body_structure": "Body",
                 "new_registration": "New", "pending": "..."
             }.get(method, method)
             cv2.putText(annotated, f"{method_short} {int(conf * 100)}%",
@@ -1060,6 +1069,98 @@ class LiveStream:
         except Exception as exc:
             logger.debug("face-sim-to-code failed: %s", exc)
             return None
+
+    def _pose_for_registration(self, tid, pose):
+        """
+        Pose to hand to identify(), honouring the starvation safety valve.
+
+        Returns None once a track has been pose-deferred
+        pose_gate_max_deferrals times in a row, which makes the gate fail open
+        for that track (see pose_ok_for_registration). Without this, a person
+        who is never frontal — or sparsely-sampled input — would never enrol.
+        """
+        limit = getattr(self._identity_config, "pose_gate_max_deferrals", 0)
+        if tid is None or limit <= 0:
+            return pose
+        if self._track_pose_defer.get(tid, 0) >= limit:
+            return None          # valve open: accept the best frame available
+        return pose
+
+    def _note_pose_deferral(self, tid, method: str) -> None:
+        """Count consecutive pose deferrals; any other outcome resets."""
+        if tid is None:
+            return
+        if method == "pending_pose":
+            self._track_pose_defer[tid] = self._track_pose_defer.get(tid, 0) + 1
+        else:
+            self._track_pose_defer.pop(tid, None)
+
+    def _apply_id_switch_guard(self, tid, cached: Optional[Dict], face_emb, db) -> Optional[Dict]:
+        """
+        ID-switch guard: a gate-passing face that contradicts the cached
+        code means the tracker likely handed this track to a different
+        person (occlusion swap). id_switch_contradiction_limit consecutive
+        contradictions (face similarity to the cached code's stored face
+        below id_switch_similarity_threshold) → drop the cache and force
+        re-identification from scratch.
+
+        Returns the (possibly None) cached dict — None means "guard
+        dropped it, re-identify". Gated by IdentityConfig.enable_id_switch_guard;
+        when off, `cached` is returned unchanged (trust the cache
+        unconditionally — pre-guard behavior) and the mismatch-strike
+        counter is not touched.
+
+        Extracted from _analyze_frame as its own method so
+        enable_id_switch_guard's effect is independently testable
+        (see scripts/verify_flags.py) without needing to run a full frame
+        through the capture/analysis pipeline.
+        """
+        if self._identity_config.enable_id_switch_guard and cached and face_emb is not None:
+            sim = self._face_sim_to_code(face_emb, cached["code"], db)
+            if sim is not None and sim < self._identity_config.id_switch_similarity_threshold:
+                strikes = self._track_face_mismatch.get(tid, 0) + 1
+                self._track_face_mismatch[tid] = strikes
+                if strikes >= self._identity_config.id_switch_contradiction_limit:
+                    logger.info(
+                        "ID-switch suspected on track %s: face sim %.3f "
+                        "to cached %s — re-identifying", tid, sim, cached["code"])
+                    self._track_codes.pop(tid, None)
+                    self.active_tracks.pop(tid, None)
+                    self._track_face_mismatch[tid] = 0
+                    cached = None
+            else:
+                self._track_face_mismatch[tid] = 0
+        return cached
+
+    def _evidence_gate_ok(self, tid, code: str, face_emb, fresh_face_id: bool, db) -> bool:
+        """
+        Whether a sighting row / photo may be filed for `code` this cycle.
+
+        A track with ID-switch contradiction strikes is mid-switch — its
+        code is suspect, so no evidence until it re-verifies. Otherwise,
+        evidence requires a gate-passing face agreeing with the code (or
+        the code was freshly earned from that face this cycle) — a
+        faceless box that inherited a code (cached track, colour/re-ID
+        re-association) can keep its live on-screen label but cannot
+        write evidence under someone else's code.
+
+        Gated by IdentityConfig.enable_evidence_gating; when off, every
+        non-"Detecting..." code is evidence-eligible unconditionally
+        (pre-gating behavior).
+
+        Extracted from _analyze_frame as its own method so
+        enable_evidence_gating's effect is independently testable (see
+        scripts/verify_flags.py).
+        """
+        if not self._identity_config.enable_evidence_gating:
+            return True
+        identity_in_doubt = tid is not None and self._track_face_mismatch.get(tid, 0) > 0
+        face_confirms = fresh_face_id
+        if not face_confirms and code and code != "Detecting..." and face_emb is not None:
+            sim_ev = self._face_sim_to_code(face_emb, code, db)
+            face_confirms = (sim_ev is not None
+                             and sim_ev >= self._identity_config.evidence_face_sim_threshold)
+        return not identity_in_doubt and face_confirms
 
     def _save_sighting_snapshot(self, code: str, crop: np.ndarray) -> Optional[str]:
         """Save a person crop for this sighting; keep only the newest files."""

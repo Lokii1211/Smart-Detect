@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { mediaUrl } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -104,7 +105,7 @@ function SearchById({ navigate }) {
               background: '#f0f0f0', border: '0.5px solid #e8e8e8',
             }}>
               {person.photo_path && (
-                <img src={`${API}/${person.photo_path}`} alt=""
+                <img src={mediaUrl(person.photo_path)} alt=""
                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                      onError={e => { e.target.style.display = 'none' }} />
               )}
@@ -164,7 +165,7 @@ function SearchById({ navigate }) {
                   width: 46, height: 46, borderRadius: 6, overflow: 'hidden',
                   background: '#f0f0f0', border: '0.5px solid #e8e8e8',
                 }}>
-                  <img src={`${API}/${a.snapshot}`} alt=""
+                  <img src={mediaUrl(a.snapshot)} alt=""
                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                        onError={e => { e.target.parentElement.style.display = 'none' }} />
                 </div>
@@ -218,7 +219,7 @@ function CameraCard({ cam }) {
       {/* Camera screen — the REAL annotated stream when the camera is live */}
       <div style={{ position: 'relative', background: '#0a0a0a', aspectRatio: '16/9', overflow: 'hidden' }}>
         {cam.is_active ? (
-          <img src={`${API}/camera/stream/${cam.camera_id}`} alt={cam.camera_name}
+          <img src={mediaUrl(`camera/stream/${cam.camera_id}`)} alt={cam.camera_name}
                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                onError={e => { e.target.style.display = 'none' }} />
         ) : (

@@ -1,6 +1,28 @@
 # SmartDetect — Metro Person Tracking System
 ## Complete Project Documentation
 
+> ## ⚠️ ACCURACY NOTICE — reconciled 2026-08-02
+>
+> This document was written early and drifted from the code. The following
+> were corrected in this pass; treat anything else here as unverified until
+> checked against the source:
+>
+> | Claim | Was | Actually |
+> |---|---|---|
+> | Tracker | DeepSORT | **ByteTrack** (`supervision`). DeepSORT survives only in the legacy `cameras/camera_processor.py`. |
+> | Threading (LiveStream) | "ALL ML in single thread" | **Capture and analysis on separate threads**, `Queue(maxsize=1)` drop-oldest — an adaptive frame-skipper. |
+> | Face match threshold | 0.72 | **0.56** |
+> | Body re-ID threshold | 0.78 | **0.68** |
+> | Method 4 multi-feature fusion | described as a pipeline stage | **never implemented; removed 2026-08-02.** Not planned — see `config/identity_config.py`. |
+> | `crowd` alert type | listed | **removed** — never emitted, no occupancy policy behind it. |
+> | `camera_offline` alert | listed, never emitted | **now implemented** (fires on stream EOF). |
+> | `scripts/accuracy_test.py` | "ML accuracy benchmarks" | **deleted** — it scored synthetic random embeddings, not face recognition. |
+>
+> **Authoritative sources, in order:** the code · `config/identity_config.py`
+> (every threshold) · `eval/METRICS.md` (metric definitions) ·
+> `PROJECT_REVIEW.md` (honest status) · `docs/` (governance, TLS, scale,
+> cross-camera design).
+
 > **Purpose**: This document contains every detail of the SmartDetect project so you can understand, run, modify, and debug it from scratch — even without conversation history.
 
 ---
@@ -30,7 +52,7 @@
 **SmartDetect** is an AI-powered real-time person tracking and identification system designed for metro stations. It uses:
 
 - **YOLOv8** for person detection
-- **DeepSORT** for multi-object tracking (stable IDs across frames)
+- **ByteTrack** (via `supervision`) for multi-object tracking (stable IDs across frames)
 - **InsightFace (ArcFace)** for face recognition (512-dim embeddings)
 - **OSNet (torchreid)** for person re-identification via body features
 - **FastAPI** backend with REST APIs
@@ -40,7 +62,7 @@
 ### What it does:
 1. Opens a webcam or RTSP camera feed
 2. Detects all persons in the frame (YOLO)
-3. Tracks each person across frames (DeepSORT → stable track IDs)
+3. Tracks each person across frames (ByteTrack → stable track IDs)
 4. Identifies each person using a 4-method cascade:
    - Face recognition (ArcFace embedding match)
    - Dress color matching (K-means torso crop, HSV distance)
@@ -106,7 +128,7 @@ The system has **two separate camera processing systems**:
 #### Mode 1: `CameraProcessor` (standalone, high-FPS)
 - File: `cameras/camera_processor.py`
 - Run via: `python scripts/run_camera.py --camera CAM-001 --station entrance --source 0`
-- Uses **background threads** for YOLO/DeepSORT (no FPS impact)
+- Uses **background threads** for YOLO/ByteTrack (no FPS impact)
 - Uses **InsightFace cached face detection** with motion offset
 - Shows OpenCV window locally with annotations
 - Reports sightings to the backend API via HTTP
@@ -115,7 +137,8 @@ The system has **two separate camera processing systems**:
 #### Mode 2: `LiveStream` (backend-integrated, dashboard streaming)
 - File: `cameras/live_stream.py`
 - Started via: `POST /camera/start` API endpoint
-- Runs ALL ML models in single thread (lower FPS ~1-5)
+- Capture and ML analysis run on SEPARATE threads (drop-oldest queue,
+  `Queue(maxsize=1)`), so stream FPS is independent of analysis cost
 - Streams MJPEG to dashboard via `GET /camera/stream/{id}`
 - **Best for: dashboard live view**
 
@@ -146,7 +169,9 @@ C:\Project\
 │
 ├── tracker/                    # Multi-object tracking
 │   ├── __init__.py
-│   └── deepsort_tracker.py     # DeepSORT wrapper (205 lines)
+│   └── deepsort_tracker.py     # LEGACY DeepSORT wrapper — used only by
+│                               # cameras/camera_processor.py (Mode 1).
+│                               # The dashboard pipeline uses ByteTrack.
 │
 ├── database/                   # Database layer
 │   ├── __init__.py
@@ -187,7 +212,6 @@ C:\Project\
 │   ├── seed_db.py              # Seed database
 │   ├── seed_stations.py        # Seed metro stations
 │   ├── e2e_test.py             # End-to-end tests
-│   ├── accuracy_test.py        # ML accuracy testing
 │   └── load_test.py            # Load/stress testing
 │
 ├── docker/                     # Docker config
@@ -232,7 +256,13 @@ results = model.predict(
 - Also detects bags, bottles for "carrying object" annotation
 - Model file `yolov8n.pt` is ~6.5MB (excluded from git, auto-downloads on first run)
 
-### 4.2 Multi-Object Tracking (DeepSORT)
+### 4.2 Multi-Object Tracking (ByteTrack)
+
+> **Corrected 2026-08-02.** The dashboard pipeline (`cameras/live_stream.py`)
+> uses **ByteTrack** via `supervision`, constructed as
+> `sv.ByteTrack(track_activation_threshold=0.25)`. DeepSORT survives only in
+> the legacy standalone `cameras/camera_processor.py`. Identity resolution runs
+> **once per track**, not per frame.
 
 **File**: `tracker/deepsort_tracker.py`
 
@@ -290,9 +320,9 @@ face_app.prepare(ctx_id=-1, det_size=(160, 160), det_thresh=0.35)
 
 | Priority | Method | Model | Threshold | Description |
 |----------|--------|-------|-----------|-------------|
-| 1 | **Face** | InsightFace ArcFace | cosine ≥ 0.72 | Most reliable |
+| 1 | **Face** | InsightFace ArcFace | cosine ≥ **0.56** | Most reliable; face-anchored |
 | 2 | **Dress Color** | K-means torso crop | HSV distance ≤ 30 | Fast, short-term |
-| 3 | **Body Re-ID** | OSNet embedding | cosine ≥ 0.78 | When face hidden |
+| 3 | **Body Re-ID** | OSNet embedding | cosine ≥ **0.68** | Only when NO usable face |
 | 4 | **Multi-feature** | Weighted combo | combined ≥ 0.65 | Last resort |
 | 5 | **New Registration** | — | — | Auto-assigns `SDT-XXXX` |
 
@@ -381,7 +411,7 @@ Main Thread (20+ FPS)
 
 Background Thread: _detect_track_worker
 ├── YOLO detection (imgsz=416, conf=0.30)
-├── DeepSORT tracking (IoU-only, bbox embeddings)
+├── ByteTrack tracking (supervision, activation 0.25)
 └── Update self._cached_tracks
 
 Background Thread: _face_worker
@@ -404,7 +434,8 @@ Background Thread: _reid_worker
 
 **File**: `cameras/live_stream.py` (615 lines)
 
-- All ML runs in single thread (simpler but slower)
+- Capture and analysis on separate threads; the queue drops stale frames
+  so analysis never delays capture (an adaptive frame-skipper)
 - InsightFace runs every 5th frame with temporal smoothing
 - Stores latest JPEG in memory for MJPEG streaming
 - Includes dress color detection, height estimation, bag linking
@@ -581,7 +612,7 @@ docker-compose up -d
 
 ### 11.1 FPS Optimization
 
-**Problem**: Running YOLO + InsightFace + DeepSORT in the main loop gave ~3 FPS.
+**Problem**: Running YOLO + InsightFace + tracking in the main loop gave ~3 FPS.
 
 **Solution**: Decoupled architecture in `camera_processor.py`:
 - Main thread: frame read + UI rendering at 20+ FPS
@@ -761,7 +792,7 @@ git push origin main
 | `scripts/demo_setup.py` | Seed 8 demo metro stations |
 | `scripts/seed_db.py` | Seed database with sample data |
 | `scripts/e2e_test.py` | End-to-end API tests |
-| `scripts/accuracy_test.py` | ML accuracy benchmarks |
+| `eval/run_eval.py` | Ground-truth accuracy harness (replaced accuracy_test.py, which scored synthetic random embeddings) |
 | `scripts/load_test.py` | Load/stress tests |
 
 ---

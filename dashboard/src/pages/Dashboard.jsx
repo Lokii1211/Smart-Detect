@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { mediaUrl } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -34,7 +35,7 @@ function LiveFeedPreview() {
   // whichever is actually active right now, not just the first one ever seen
   const preview = cameras.find(c => c.is_active) || cameras[0]
   const isConnected = !!preview?.is_active
-  const streamUrl = `${API}/camera/stream/${preview?.camera_id || 'CAM-001'}`
+  const streamUrl = mediaUrl(`camera/stream/${preview?.camera_id || 'CAM-001'}`)
 
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
