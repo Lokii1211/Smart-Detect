@@ -1,0 +1,184 @@
+{
+  "buckets": {
+    "n_total": 133,
+    "n_correct": 131,
+    "n_contaminated": 0,
+    "n_unassigned": 2,
+    "frac_correct": 0.9849624060150376,
+    "frac_contaminated": 0.0,
+    "frac_unassigned": 0.015037593984962405,
+    "ci_correct": {
+      "value": 0.9849624060150376,
+      "lo": 0.9468303454594498,
+      "hi": 0.9958664155348265,
+      "half_width": 0.024518035037688343,
+      "n": 133
+    },
+    "ci_contaminated": {
+      "value": 0.0,
+      "lo": 0.0,
+      "hi": 0.02807233168807166,
+      "half_width": 0.01403616584403583,
+      "n": 133
+    },
+    "ci_unassigned": {
+      "value": 0.015037593984962405,
+      "lo": 0.004133584465173475,
+      "hi": 0.05316965454055016,
+      "half_width": 0.024518035037688343,
+      "n": 133
+    },
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 2,
+    "sums_to_one": true
+  },
+  "identity_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.9715112929340055,
+      "hi": 1.0,
+      "half_width": 0.014244353532997286,
+      "n": 131
+    },
+    "n_correct": 131,
+    "n_assigned": 131
+  },
+  "identity_coverage": {
+    "value": 0.9849624060150376,
+    "ci": {
+      "value": 0.9849624060150376,
+      "lo": 0.9468303454594498,
+      "hi": 0.9958664155348265,
+      "half_width": 0.024518035037688343,
+      "n": 133
+    },
+    "n_assigned": 131,
+    "n_total": 133,
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 2
+  },
+  "evidence_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.43850296824495455,
+      "hi": 1.0,
+      "half_width": 0.28074851587752275,
+      "n": 3
+    },
+    "n_written": 3,
+    "n_correct": 3,
+    "n_wrong": 0,
+    "evidence_yield": 0.022556390977443608,
+    "evidence_yield_ci": {
+      "value": 0.022556390977443608,
+      "lo": 0.007700422819821185,
+      "hi": 0.06421826984472845,
+      "half_width": 0.02825892351245363,
+      "n": 133
+    }
+  },
+  "identity_purity": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.20654931437723745,
+      "hi": 1.0,
+      "half_width": 0.3967253428113813,
+      "n": 1
+    },
+    "n_codes": 1,
+    "impure_codes": []
+  },
+  "fragmentation": {
+    "value": 1.0,
+    "n_people": 1,
+    "per_person": {
+      "0003": 1
+    }
+  },
+  "duplicate_identities": {
+    "value": 0.0,
+    "n_people": 1,
+    "total_duplicates": 0,
+    "people_with_duplicates": 0,
+    "per_person": {
+      "0003": 0
+    },
+    "codes_owned": {
+      "0003": [
+        "SDT-0001"
+      ]
+    }
+  },
+  "id_switches": {
+    "value": 0,
+    "n_tracks": 3,
+    "per_track": {}
+  },
+  "cross_camera_reassoc": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.34238022750665303,
+      "hi": 1.0,
+      "half_width": 0.32880988624667346,
+      "n": 2
+    },
+    "n_pairs": 2,
+    "detail": [
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0001",
+        "match": true
+      },
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0001",
+        "match": true
+      }
+    ]
+  },
+  "runtime": {
+    "n_frames": 1050,
+    "mean_frame_latency_ms": 58.208190489856946,
+    "median_frame_latency_ms": 47.43199999211356,
+    "throughput_fps": 17.179712882060038,
+    "total_wall_seconds": 61.118600014349795,
+    "machine": "Apple M5 (CPU inference, ONNXRuntime CPUExecutionProvider)",
+    "driver": "LiveStream._analyze_frame (live path)"
+  },
+  "n_records": 133,
+  "config_file": "F_tracklet_mean.json",
+  "config_flags": {
+    "enable_face_anchor": true,
+    "enable_colour_fallback": true,
+    "enable_reid_fallback": true,
+    "enable_id_switch_guard": true,
+    "enable_evidence_gating": true,
+    "enable_tracklet_voting": true
+  },
+  "dataset": {
+    "adapter": "chokepoint",
+    "root": "/Users/lokii/Downloads/Smart-Detect-main/eval/data/chokepoint"
+  },
+  "harness_notes": [
+    "DRIVER: LiveStream._analyze_frame() \u2014 the real production per-frame loop.",
+    "head-zoom second pass IS exercised (it runs inside _analyze_frame).",
+    "raw unconfirmed YOLO boxes appear as tid=None 'Detecting...' entries.",
+    "on-screen pre-commit frames are NOT retroactively relabelled (production divergence; DB trail is backfilled under the committed code).",
+    "evidence rows are limited by production's 30s wall-clock dedup, so n_written is smaller than the offline run's per-frame rows."
+  ],
+  "voter_stats": {
+    "committed": 0,
+    "tracks": 0,
+    "never_had_a_face": 0
+  }
+}

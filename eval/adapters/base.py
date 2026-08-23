@@ -71,7 +71,7 @@ class DatasetAdapter(ABC):
         """Yield frames of one sequence in temporal order."""
         raise NotImplementedError
 
-    def ground_truth_index(self) -> Iterator[tuple]:
+    def ground_truth_index(self, max_frames: int = 0) -> Iterator[tuple]:
         """
         Yield (seq_id, camera_id, frame_id, [person_id, ...]) for every
         labelled frame, WITHOUT decoding pixels.
@@ -80,9 +80,20 @@ class DatasetAdapter(ABC):
         whole corpus; decoding ~64k JPEGs to count labels would take minutes.
         Adapters should override this with a label-only path. The default
         implementation falls back to frames() and is correct but slow.
+
+        max_frames: per-sequence cap, 0 = no cap. MUST be applied in the same
+        order frames() yields, and must keep exactly the frames frames() would
+        keep under the same cap — the adequacy gate is only meaningful if it
+        scores the frame set the runner will actually score. An adapter whose
+        index order diverges from its frames() order will silently validate a
+        different subset than it evaluates (see FolderAdapter.order).
         """
         for seq in self.sequences():
+            n = 0
             for fr in self.frames(seq.seq_id):
+                if max_frames and n >= max_frames:
+                    break
+                n += 1
                 yield (seq.seq_id, fr.camera_id, fr.frame_id,
                        [g.person_id for g in fr.ground_truth])
 

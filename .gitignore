@@ -26,6 +26,12 @@ venv/
 *.db
 *.db-shm
 *.db-wal
+*.bak
+
+# Temporary / scratch files
+.freebuff/
+SmartDetect_IEEE_Paper.docx
+SmartDetect_IEEE_Paperr.pages
 
 # Node / Dashboard
 node_modules/
@@ -76,3 +82,16 @@ htmlcov/
 eval/results/_profile_work/
 eval/results/perf/
 scratch_verify_flags*
+
+# Evaluation dataset downloads and extraction intermediates.
+# eval/data/_dl/ holds the ChokePoint tarballs plus their unpacked copies —
+# ~1.1 GB duplicating eval/data/chokepoint/. The corpus is licensed separately
+# and must be obtained per eval/adapters/chokepoint.py, never committed.
+eval/data/_dl/
+eval/data/chokepoint/
+
+# Per-config scratch produced by eval/run_eval.py (throwaway DB + snapshots).
+eval/results/**/eval.db
+eval/results/**/eval.db-shm
+eval/results/**/eval.db-wal
+eval/results/**/workdir/

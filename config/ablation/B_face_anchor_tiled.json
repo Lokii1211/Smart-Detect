@@ -1,0 +1,23 @@
+{
+  "_name": "B \u2014 face-anchor only  + sliced (tiled) inference",
+  "_mechanisms_active": [
+    "Method 1 face matching",
+    "face_says_stranger gate \u2014 a visible-but-unmatched face BLOCKS colour/re-ID from even attempting a match for that box",
+    "face_veto \u2014 a contradicting face rejects a colour/re-ID candidate match outright",
+    "Face-based registration gate (see _registration_note \u2014 unaffected by this flag, always on)"
+  ],
+  "_mechanisms_disabled": [
+    "ByteTrack ID-switch guard \u2014 if a track's code is already cached (from a PRIOR cycle, before this cycle's face-anchor logic runs), an occlusion hand-off to a different person is not detected; the wrong cached code is trusted",
+    "evidence gating \u2014 every sighting with a non-'Detecting...' code is logged unconditionally, including ones from a track mid-hand-off"
+  ],
+  "_registration_note": "Same as every other config: minting a new SDT code always requires a visible face (query_face_emb is not None), independent of enable_face_anchor. This flag only changes what happens to boxes that DON'T get a fresh face match \u2014 whether colour/re-ID may claim them for an existing person.",
+  "_expected_risk": "Isolates face-anchoring's own contribution. Should prevent the specific 'colour matched a stranger to an existing code' failure mode from A, but is still exposed to ID-switch (cache never re-verified once set) and to unconfirmed evidence (a wrongly-cached code still gets photo evidence filed under it).",
+  "enable_face_anchor": true,
+  "enable_id_switch_guard": false,
+  "enable_evidence_gating": false,
+  "_tiling_note": "DETECTION ONLY \u2014 identity flags identical to the untiled variant. min_source_resolution lowered to 640 for the 800x600 ChokePoint frames.",
+  "enable_tiled_detection": true,
+  "tile_size": 640,
+  "tile_overlap": 0.2,
+  "tiled_min_source_resolution": 640
+}

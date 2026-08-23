@@ -162,6 +162,92 @@ class IdentityConfig:
     zoom_max_factor: float = 4.0
     # Upper bound on the digital zoom applied.
 
+    # ── Score calibration (recognition/score_calibration.py) ───────────────
+    # Thresholds may be given as a raw cosine OR as a target false-match rate.
+    # A target FMR, when set and resolvable from the calibration, overrides the
+    # raw cosine; otherwise the raw value stands, so a missing or
+    # under-resolved calibration can never silently loosen the gate.
+    #
+    # FMR here is 1:N (max over the gallery), because that is what
+    # find_person_by_embedding computes. It therefore grows with gallery size:
+    # a threshold calibrated on 25 identities is not automatically safe at
+    # 1000. Re-calibrate when the population changes materially.
+    face_match_target_fmr: Optional[float] = None
+    score_calibration_path: str = "models/score_calibration.pkl"
+
+    # ── Optimal face-to-person assignment (recognition/face_assign.py) ─────
+    # The shipped rule is greedy and local: each person box takes the first
+    # face whose centroid falls in its upper 60%. Where two boxes overlap, one
+    # face can satisfy both and whichever box is visited first wins. The face
+    # is real and gate-passing, so the face veto, ID-switch guard and evidence
+    # gate all see legitimate evidence and none of them objects.
+    #
+    # The alternative scores every (face, box) pair on containment, vertical
+    # position, anatomical scale and a depth proxy, then solves the frame as a
+    # one-to-one linear assignment.
+    enable_optimal_face_assignment: bool = False
+    face_assign_max_cost: float = 0.60
+    # Assignments above this are REJECTED and the face is left unattached.
+    # Asymmetric on purpose: an unattached face costs one frame of coverage; a
+    # misattached one identifies the wrong human and nothing downstream catches
+    # it.
+
+    # ── Tracklet-level identity voting (recognition/tracklet_vote.py) ──────
+    # Identity otherwise commits on the FIRST gate-passing frame, so one poor
+    # enrolment view produces a duplicate that lasts the track's lifetime.
+    # Voting buffers gate-passing faces and decides once, from all of them.
+    #
+    # The cost is coverage: before commit the track shows "Detecting...", so
+    # short tracks that never reach k faces are labelled late or not at all.
+    enable_tracklet_voting: bool = False
+    tracklet_vote_strategy: str = "mean"     # "mean" | "vote"
+    # mean : quality-weighted mean embedding, matched once. Cheap; a bimodal
+    #        buffer (mid-track ID switch) averages two people into a chimera.
+    # vote : match each embedding, weighted vote over codes. Robust to a
+    #        bimodal buffer, at k times the matching cost.
+    tracklet_buffer_size: int = 10
+    tracklet_commit_k: int = 3
+    # Commit when k gate-passing faces have accumulated OR the track ends.
+
+    # ── Learned face-quality gate (recognition/face_quality.py) ────────────
+    # face_quality_min_height_px / _min_det_score above are two hand-set
+    # constants standing in for embedding reliability. The learned gate
+    # predicts that quantity directly — the discriminative margin, genuine
+    # similarity minus best-impostor similarity — and admits above a threshold.
+    #
+    # OFF by default. When off, gate_passes() runs the identical two-constant
+    # test and nothing in face_quality.py is touched.
+    enable_learned_quality_gate: bool = False
+    face_quality_model_path: str = "models/face_quality.pkl"
+    learned_quality_min_margin: float = 0.35
+    # Predicted margin required to admit a face. 0.0 is the point at which the
+    # embedding is as close to a stranger as to its owner; 0.35 keeps headroom.
+
+    # ── Sliced (tiled) inference — DETECTION ONLY ───────────────────────────
+    # Downscaling to the detector input is what makes CPU operation affordable
+    # and what destroys distant pedestrians. Tiling re-runs detection at native
+    # resolution inside overlapping tiles and merges the boxes back.
+    #
+    # These are detection parameters, not arbitration parameters. They live
+    # here because this dataclass is the single mechanism the ablation configs
+    # and the offline runner already load; nothing downstream of detection
+    # reads them, and no identity decision depends on them.
+    enable_tiled_detection: bool = False
+    # OFF by default: tiling multiplies detection cost and the gain is
+    # confined to sources where subjects are small relative to the frame.
+    tile_size: int = 640
+    tile_overlap: float = 0.2
+    # Overlap must exceed the widest subject that may straddle a seam, or that
+    # subject is seen only in fragments by both tiles. 0.2 of 640 = 128 px.
+    tiled_min_source_resolution: int = 1280
+    # Longer-edge floor, below which tiling is skipped as pure cost — a 640 px
+    # webcam frame is already at native scale for the detector.
+    tile_merge_iou: float = 0.50
+    tile_merge_containment: float = 0.70
+    # Merge uses IoU OR intersection-over-smaller. IoU alone cannot absorb a
+    # tile-edge fragment into the whole person (a sliver under half the parent
+    # box scores IoU < 0.5), which would leave one person with two boxes.
+
     # ── Duplicate-suggestion endpoint (backend/main.py) ─────────────────────
     duplicate_suggestion_threshold: float = 0.50
     # Advisory confidence bands shown to the operator. These change PRESENTATION

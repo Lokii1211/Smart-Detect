@@ -1,10 +1,13 @@
 """Seed location + start camera for dashboard live stream."""
+import os, sys; sys.path.insert(0, os.path.dirname(__file__))
+from _credentials import credentials
 import requests
 
 API = "http://localhost:8000"
 
 # 1. Login
-r = requests.post(f"{API}/auth/login", json={"username": "operator", "password": "smartOp2024"})
+_u, _p = credentials("operator")
+r = requests.post(f"{API}/auth/login", json={"username": _u, "password": _p})
 token = r.json()["access_token"]
 h = {"Authorization": f"Bearer {token}"}
 print("Token: OK")

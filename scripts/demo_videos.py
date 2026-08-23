@@ -21,20 +21,25 @@ from pathlib import Path
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _credentials import credentials
+
 BASE = "http://localhost:8000"
 DEMO_DIR = Path(__file__).resolve().parent.parent / "demo_videos"
 LOCATION = {"id": "LOC-001", "name": "Demo Site", "type": "building", "address": "Live Demo"}
 
 
-def login() -> str:
-    for user, pw in [("operator", "smartOp2024"), ("admin", "smartAdmin2024")]:
-        try:
-            r = requests.post(f"{BASE}/auth/login", json={"username": user, "password": pw}, timeout=10)
-            if r.ok:
-                return r.json()["access_token"]
-        except requests.RequestException:
-            pass
-    sys.exit(f"Cannot reach backend at {BASE}. Start it first (see README).")
+def login(role: str = "operator") -> str:
+    user, pw = credentials(role)
+    try:
+        r = requests.post(f"{BASE}/auth/login",
+                          json={"username": user, "password": pw}, timeout=10)
+    except requests.RequestException:
+        sys.exit(f"Cannot reach backend at {BASE}. Start it first (see README).")
+    if not r.ok:
+        sys.exit(f"Login failed for '{user}' ({r.status_code}). "
+                 f"Check the credentials in .env match the running server.")
+    return r.json()["access_token"]
 
 
 def main() -> None:
@@ -51,14 +56,22 @@ def main() -> None:
     hdr = {"Authorization": f"Bearer {token}"}
 
     # Admin token needed to create the location
-    admin = requests.post(f"{BASE}/auth/login",
-                          json={"username": "admin", "password": "smartAdmin2024"}, timeout=10)
-    if admin.ok:
-        requests.post(f"{BASE}/locations", json=LOCATION,
-                      headers={"Authorization": f"Bearer {admin.json()['access_token']}"}, timeout=10)
+    admin_token = login("admin")
+    requests.post(f"{BASE}/locations", json=LOCATION,
+                  headers={"Authorization": f"Bearer {admin_token}"}, timeout=10)
 
     if args.reset:
+        # stop-all only halts streams; it leaves the camera rows behind, so a
+        # second run without this loop kept uploading fresh CAM-XXX rows for
+        # the same 7 clips every time instead of replacing them.
         requests.post(f"{BASE}/camera/stop-all", json={}, headers=hdr, timeout=30)
+        r = requests.get(f"{BASE}/cameras", headers=hdr, timeout=10)
+        if r.ok:
+            for loc in r.json():
+                for cam in loc.get("cameras", []):
+                    if cam["label"] in {c.stem for c in clips}:
+                        requests.delete(f"{BASE}/cameras/{cam['id']}", headers=hdr, timeout=10)
+                        print(f"  - removed old {cam['id']} ({cam['label']})")
 
     print(f"Uploading {len(clips)} demo clips…")
     cam_ids = []

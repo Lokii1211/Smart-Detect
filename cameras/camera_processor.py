@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import sys
 import threading
 import time
 import warnings
@@ -374,7 +375,12 @@ class CameraProcessor:
         attempts = 0
         while attempts <= MAX_RECONNECT_ATTEMPTS and not self._stop_event.is_set():
             if isinstance(self.video_source, int):
-                cap = cv2.VideoCapture(self.video_source, cv2.CAP_DSHOW)
+                # CAP_DSHOW is a Windows-only backend; on macOS it fails
+                # immediately without falling back to AVFoundation.
+                if sys.platform.startswith("win"):
+                    cap = cv2.VideoCapture(self.video_source, cv2.CAP_DSHOW)
+                else:
+                    cap = cv2.VideoCapture(self.video_source)
             else:
                 cap = cv2.VideoCapture(self.video_source)
             if cap.isOpened():

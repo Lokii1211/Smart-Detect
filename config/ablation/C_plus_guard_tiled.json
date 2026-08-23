@@ -1,0 +1,20 @@
+{
+  "_name": "C \u2014 face-anchor + ID-switch guard  + sliced (tiled) inference",
+  "_mechanisms_active": [
+    "Everything in B (Method 1, face_says_stranger gate, face_veto)",
+    "ByteTrack ID-switch guard \u2014 a cached code contradicted by a gate-passing face for id_switch_contradiction_limit (default 2) consecutive cycles is dropped, forcing re-identification"
+  ],
+  "_mechanisms_disabled": [
+    "evidence gating \u2014 a sighting/photo is still logged the MOMENT a code is current (cached or freshly matched), even before the guard above has had the 2 cycles it needs to notice a contradiction. The guard corrects the code eventually; it does not retroactively un-log evidence filed during the 1-2 cycles before it fires."
+  ],
+  "_registration_note": "Unaffected by these two flags: minting still always requires a visible face, in every config.",
+  "_expected_risk": "Fixes cross-video/cross-occlusion ID theft that B is exposed to, but there is a real window \u2014 up to id_switch_contradiction_limit analysis cycles \u2014 where a hijacked track can still write 1-2 sighting rows / photos under the wrong code before the guard catches it. D closes that window by refusing to log evidence until a fresh face directly confirms the code.",
+  "enable_face_anchor": true,
+  "enable_id_switch_guard": true,
+  "enable_evidence_gating": false,
+  "_tiling_note": "DETECTION ONLY \u2014 identity flags identical to the untiled variant. min_source_resolution lowered to 640 for the 800x600 ChokePoint frames.",
+  "enable_tiled_detection": true,
+  "tile_size": 640,
+  "tile_overlap": 0.2,
+  "tiled_min_source_resolution": 640
+}

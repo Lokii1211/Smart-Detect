@@ -174,6 +174,12 @@ def main() -> None:
             # matching production's per-LiveStream _seen_cache)
             sight_cache: dict = {}
 
+            # Tracklet voting is per camera, like the tracker it keys on.
+            voter = None
+            if getattr(cfg, "enable_tracklet_voting", False):
+                from recognition.tracklet_vote import TrackletVoter
+                voter = TrackletVoter(cfg)
+
             n = 0
             for frame in adapter.frames(seq.seq_id):
                 if args.max_frames and n >= args.max_frames:
@@ -188,11 +194,26 @@ def main() -> None:
                 ls._face_scan_size = (1280, 720) if max(fw, fh) > 1280 else (fw, fh)
 
                 assignments = _process_frame(ls, img, frame, cfg, order, sight_cache,
-                                             args.sighting_dedup_seconds)
+                                             args.sighting_dedup_seconds, voter)
                 records.extend(assignments)
                 order += len(assignments)
                 frame_times.append(time.perf_counter() - t0)
 
+            if voter is not None:
+                # Commit every still-open track from whatever it accumulated.
+                # A track that ended without reaching k faces still gets its
+                # one decision here; a track that never saw a face does not.
+                db_f = SessionLocal()
+                try:
+                    voter.flush(
+                        resolve_mean=lambda e: _resolve_embedding(ls, cfg, db_f, e),
+                        match_fn=lambda e: _match_only(cfg, db_f, e))
+                finally:
+                    db_f.close()
+                vs = voter.stats()
+                print(f"[eval]   {seq.seq_id}: tracklet voting — "
+                      f"{vs['committed']}/{vs['tracks']} tracks committed, "
+                      f"{vs['never_had_a_face']} never had a gate-passing face")
             print(f"[eval]   {seq.seq_id}: {n} frames")
     finally:
         os.chdir(prev_cwd)
@@ -232,8 +253,61 @@ def main() -> None:
 
 
 
+class _PendingRef:
+    """
+    Links a buffered tracklet observation to the Assignment record that will be
+    emitted for that frame.
+
+    The voter buffers observations DURING per-detection processing, but the
+    scoring record is only built later, after detections are attributed to
+    ground truth. This holder is registered with the voter immediately and
+    pointed at the record once it exists, so a commit can write the code back
+    into frames that were emitted as "Detecting...".
+    """
+    __slots__ = ("target",)
+
+    def __init__(self):
+        self.target = None
+
+    @property
+    def code(self):
+        return self.target.code if self.target is not None else None
+
+    @code.setter
+    def code(self, v):
+        if self.target is not None:
+            self.target.code = v
+
+    @property
+    def method(self):
+        return self.target.method if self.target is not None else None
+
+    @method.setter
+    def method(self, v):
+        if self.target is not None:
+            self.target.method = v
+
+
+def _resolve_embedding(ls, cfg, db, emb):
+    """Full production arbitration for one embedding (match, else enrol)."""
+    import numpy as _np
+    r = ls._identifier.identify(
+        _np.zeros((8, 8, 3), dtype=_np.uint8), [0, 0, 8, 8], db,
+        location_id=ls.location_id, zone_id=ls.zone_id,
+        allow_new=True, face_embedding=emb, face_pose=None,
+        extract_face_if_missing=False)
+    return r["unique_code"], r["method"]
+
+
+def _match_only(cfg, db, emb):
+    """Match without enrolling — used by the VOTE strategy's per-embedding pass."""
+    from database.queries import find_person_by_embedding
+    m = find_person_by_embedding(emb, db=db, threshold=cfg.face_match_threshold)
+    return m["unique_code"] if m else None
+
+
 def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
-                   dedup_seconds: float = 0.0) -> List:
+                   dedup_seconds: float = 0.0, voter=None) -> List:
     """
     Re-creates LiveStream._analyze_frame's ORCHESTRATION ONLY. Every identity
     decision is made by a production method — see module docstring.
@@ -259,7 +333,8 @@ def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
     out: List[Assignment] = []
     try:
         # 1. Detection — production ObjectDetector
-        detections = ls._detector.detect(img)
+        from cameras.tiled_detect import detect_with_tiling
+        detections = detect_with_tiling(ls._detector, img, cfg)
         person_dets = [d for d in detections if d["label"] == "person"]
 
         # 2. Tracking — production ByteTrack instance owned by LiveStream
@@ -298,29 +373,44 @@ def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
         claimed = {ls._track_codes[t]["code"]
                    for t, _ in tracked if t is not None and t in ls._track_codes}
 
+        # Face -> person association for the WHOLE frame at once. With
+        # enable_optimal_face_assignment off this reproduces the shipped greedy
+        # rule exactly, defects included.
+        from recognition.face_assign import match_faces_to_boxes
+        _fboxes = [[int(f.bbox[0]), int(f.bbox[1]),
+                    int(f.bbox[2] - f.bbox[0]), int(f.bbox[3] - f.bbox[1])]
+                   for f in all_faces]
+        _assign = match_faces_to_boxes(_fboxes, [b for _t, b in tracked], cfg,
+                                       frame_h=fh)
+
         # 4. Per-detection identity resolution (production methods only)
         det_results = []
-        for tid, bbox in tracked:
+        for _det_i, (tid, bbox) in enumerate(tracked):
             x, y, w, h = bbox
             x2, y2 = x + w, y + h
 
-            matched_face = None
-            for f in all_faces:
-                fb = f.bbox.astype(int)
-                fcx, fcy = (fb[0] + fb[2]) / 2, (fb[1] + fb[3]) / 2
-                if x <= fcx <= x2 and y <= fcy <= y + (y2 - y) * 0.6:
-                    matched_face = f
-                    break
+            det_pending = None
+            _fi = _assign.get(_det_i)
+            matched_face = all_faces[_fi] if _fi is not None else None
             face_emb = None
             face_pose = None
             if matched_face is not None:
                 face_h = float(matched_face.bbox[3] - matched_face.bbox[1])
                 det_sc = float(getattr(matched_face, "det_score", 1.0) or 1.0)
-                if (face_h >= cfg.face_quality_min_height_px
-                        and det_sc >= cfg.face_quality_min_det_score):
-                    face_emb = getattr(matched_face, "embedding", None)
                 from recognition.face_pose import estimate_pose
                 face_pose = estimate_pose(getattr(matched_face, "kps", None))
+                # Quality gate. With enable_learned_quality_gate off (default)
+                # this evaluates the identical two-constant test.
+                from recognition.face_quality import gate_passes
+                fb_q = matched_face.bbox
+                _box = [int(fb_q[0]), int(fb_q[1]),
+                        int(fb_q[2] - fb_q[0]), int(face_h)]
+                if gate_passes(_box, det_sc, face_pose, cfg,
+                               crop=img[max(0, _box[1]):_box[1] + _box[3],
+                                        max(0, _box[0]):_box[0] + _box[2]],
+                               person_boxes=[b for _t, b in tracked],
+                               owner_box=bbox):
+                    face_emb = getattr(matched_face, "embedding", None)
 
             code, method, fresh_face_id = UNASSIGNED, "pending", False
             if tid is not None:
@@ -330,7 +420,43 @@ def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
                 # ID-switch guard — REAL production method
                 cached = ls._apply_id_switch_guard(tid, cached, face_emb, db)
 
-                if cached:
+                if voter is not None:
+                    # ── Tracklet voting ────────────────────────────────────
+                    # Defer the decision. Until commit the track is
+                    # "Detecting..." and its record is held for retroactive
+                    # labelling. Buffering happens BEFORE the readiness test so
+                    # the k-th face triggers commitment on its own frame.
+                    already = voter.committed_code(tid)
+                    if already:
+                        code, method = already, "tracklet_committed"
+                        fresh_face_id = face_emb is not None
+                    else:
+                        q = 0.0
+                        if face_emb is not None:
+                            from recognition.tracklet_vote import quality_score
+                            fb_q2 = matched_face.bbox
+                            q = quality_score(
+                                [int(fb_q2[0]), int(fb_q2[1]),
+                                 int(fb_q2[2] - fb_q2[0]),
+                                 int(fb_q2[3] - fb_q2[1])],
+                                float(getattr(matched_face, "det_score", 1.0) or 1.0),
+                                face_pose, cfg)
+                        pending_rec = _PendingRef()
+                        voter.observe(tid, face_emb, q, pending_rec, order_start)
+                        if voter.ready(tid):
+                            c, m = voter.commit(
+                                tid,
+                                resolve_mean=lambda e: _resolve_embedding(ls, cfg, db, e),
+                                match_fn=lambda e: _match_only(cfg, db, e))
+                            if c:
+                                code, method = c, m
+                                fresh_face_id = face_emb is not None
+                                ls._track_codes[tid] = {"code": c, "method": m,
+                                                        "conf": 1.0, "label": c}
+                                ls.active_tracks[tid] = c
+                                claimed.add(c)
+                        det_pending = pending_rec
+                elif cached:
                     code, method = cached["code"], cached["method"]
                 else:
                     # Identity arbitration — REAL production method
@@ -368,7 +494,8 @@ def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
                         evidence_written = True
 
             det_results.append({"bbox": bbox, "tid": tid, "code": code,
-                                "method": method, "evidence_written": evidence_written})
+                                "method": method, "evidence_written": evidence_written,
+                                "pending": det_pending})
 
         # 6. Attribute detections to ground truth, greedily by IoU, one
         #    detection per GT person. Every GT person yields exactly one
@@ -412,11 +539,16 @@ def _process_frame(ls, img, frame, cfg, order_start: int, sight_cache: dict,
             else:
                 used.add(chosen)
                 d = det_results[chosen]
-                out.append(Assignment(
+                rec = Assignment(
                     frame_id=frame.frame_id, camera_id=frame.camera_id,
                     seq_id=frame.camera_id, gt_person=gp.person_id,
                     code=d["code"], tracker_id=d["tid"], method=d["method"],
-                    order=order, evidence_written=d["evidence_written"]))
+                    order=order, evidence_written=d["evidence_written"])
+                if d.get("pending") is not None:
+                    # Retroactive labelling target. A later commit on this
+                    # track rewrites this record's code in place.
+                    d["pending"].target = rec
+                out.append(rec)
             order += 1
     finally:
         db.close()

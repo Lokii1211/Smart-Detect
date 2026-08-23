@@ -1,0 +1,824 @@
+{
+  "buckets": {
+    "n_total": 2908,
+    "n_correct": 1542,
+    "n_contaminated": 1324,
+    "n_unassigned": 42,
+    "frac_correct": 0.5302613480055021,
+    "frac_contaminated": 0.45529573590096284,
+    "frac_unassigned": 0.014442916093535076,
+    "ci_correct": {
+      "value": 0.5302613480055021,
+      "lo": 0.5120939046378227,
+      "hi": 0.5483489465575445,
+      "half_width": 0.018127520959860918,
+      "n": 2908
+    },
+    "ci_contaminated": {
+      "value": 0.45529573590096284,
+      "lo": 0.4372665803015448,
+      "hi": 0.4734428440689356,
+      "half_width": 0.01808813188369539,
+      "n": 2908
+    },
+    "ci_unassigned": {
+      "value": 0.014442916093535076,
+      "lo": 0.010702962259711969,
+      "hi": 0.019464016287351588,
+      "half_width": 0.00438052701381981,
+      "n": 2908
+    },
+    "n_unassigned_no_detection": 2,
+    "n_unassigned_detecting": 40,
+    "sums_to_one": true
+  },
+  "identity_precision": {
+    "value": 0.5380321004884857,
+    "ci": {
+      "value": 0.5380321004884857,
+      "lo": 0.5197409406448047,
+      "hi": 0.5562214437335934,
+      "half_width": 0.018240251544394306,
+      "n": 2866
+    },
+    "n_correct": 1542,
+    "n_assigned": 2866
+  },
+  "identity_coverage": {
+    "value": 0.9855570839064649,
+    "ci": {
+      "value": 0.9855570839064649,
+      "lo": 0.9805359837126484,
+      "hi": 0.9892970377402881,
+      "half_width": 0.004380527013819813,
+      "n": 2908
+    },
+    "n_assigned": 2866,
+    "n_total": 2908,
+    "n_unassigned_no_detection": 2,
+    "n_unassigned_detecting": 40
+  },
+  "evidence_precision": {
+    "value": 0.5380321004884857,
+    "ci": {
+      "value": 0.5380321004884857,
+      "lo": 0.5197409406448047,
+      "hi": 0.5562214437335934,
+      "half_width": 0.018240251544394306,
+      "n": 2866
+    },
+    "n_written": 2866,
+    "n_correct": 1542,
+    "n_wrong": 1324,
+    "evidence_yield": 0.9855570839064649,
+    "evidence_yield_ci": {
+      "value": 0.9855570839064649,
+      "lo": 0.9805359837126484,
+      "hi": 0.9892970377402881,
+      "half_width": 0.004380527013819813,
+      "n": 2908
+    }
+  },
+  "identity_purity": {
+    "value": 0.4827586206896552,
+    "ci": {
+      "value": 0.4827586206896552,
+      "lo": 0.3138609015268349,
+      "hi": 0.6556897811800528,
+      "half_width": 0.170914439826609,
+      "n": 29
+    },
+    "n_codes": 29,
+    "impure_codes": [
+      {
+        "code": "SDT-0001",
+        "gt_ids": [
+          "0003",
+          "0005"
+        ]
+      },
+      {
+        "code": "SDT-0003",
+        "gt_ids": [
+          "0001",
+          "0013",
+          "0015",
+          "0016",
+          "0024"
+        ]
+      },
+      {
+        "code": "SDT-0004",
+        "gt_ids": [
+          "0004",
+          "0017",
+          "0018",
+          "0019",
+          "0021",
+          "0022"
+        ]
+      },
+      {
+        "code": "SDT-0006",
+        "gt_ids": [
+          "0022",
+          "0023"
+        ]
+      },
+      {
+        "code": "SDT-0007",
+        "gt_ids": [
+          "0010",
+          "0012"
+        ]
+      },
+      {
+        "code": "SDT-0009",
+        "gt_ids": [
+          "0009",
+          "0027"
+        ]
+      },
+      {
+        "code": "SDT-0010",
+        "gt_ids": [
+          "0014",
+          "0026"
+        ]
+      },
+      {
+        "code": "SDT-0012",
+        "gt_ids": [
+          "0011",
+          "0020"
+        ]
+      },
+      {
+        "code": "SDT-0013",
+        "gt_ids": [
+          "0005",
+          "0013",
+          "0015",
+          "0016",
+          "0017",
+          "0024"
+        ]
+      },
+      {
+        "code": "SDT-0017",
+        "gt_ids": [
+          "0003",
+          "0005",
+          "0006",
+          "0013",
+          "0015"
+        ]
+      },
+      {
+        "code": "SDT-0018",
+        "gt_ids": [
+          "0006",
+          "0010",
+          "0018",
+          "0022",
+          "0023"
+        ]
+      },
+      {
+        "code": "SDT-0020",
+        "gt_ids": [
+          "0020",
+          "0027"
+        ]
+      },
+      {
+        "code": "SDT-0024",
+        "gt_ids": [
+          "0001",
+          "0004",
+          "0016",
+          "0019",
+          "0024"
+        ]
+      },
+      {
+        "code": "SDT-0025",
+        "gt_ids": [
+          "0017",
+          "0022"
+        ]
+      },
+      {
+        "code": "SDT-0028",
+        "gt_ids": [
+          "0010",
+          "0014"
+        ]
+      }
+    ]
+  },
+  "fragmentation": {
+    "value": 2.56,
+    "n_people": 25,
+    "per_person": {
+      "0001": 3,
+      "0003": 2,
+      "0004": 3,
+      "0005": 3,
+      "0006": 3,
+      "0007": 1,
+      "0009": 1,
+      "0010": 3,
+      "0011": 2,
+      "0012": 1,
+      "0013": 3,
+      "0014": 3,
+      "0015": 3,
+      "0016": 3,
+      "0017": 3,
+      "0018": 3,
+      "0019": 3,
+      "0020": 4,
+      "0021": 2,
+      "0022": 4,
+      "0023": 3,
+      "0024": 3,
+      "0025": 2,
+      "0026": 1,
+      "0027": 2
+    }
+  },
+  "duplicate_identities": {
+    "value": 0.38095238095238093,
+    "n_people": 21,
+    "total_duplicates": 8,
+    "people_with_duplicates": 6,
+    "per_person": {
+      "0001": 0,
+      "0003": 0,
+      "0004": 0,
+      "0006": 1,
+      "0007": 0,
+      "0009": 0,
+      "0010": 0,
+      "0011": 0,
+      "0012": 0,
+      "0013": 2,
+      "0014": 0,
+      "0016": 0,
+      "0017": 1,
+      "0018": 0,
+      "0019": 0,
+      "0020": 2,
+      "0021": 0,
+      "0023": 1,
+      "0025": 1,
+      "0026": 0,
+      "0027": 0
+    },
+    "codes_owned": {
+      "0001": [
+        "SDT-0019"
+      ],
+      "0003": [
+        "SDT-0001"
+      ],
+      "0004": [
+        "SDT-0023"
+      ],
+      "0006": [
+        "SDT-0008",
+        "SDT-0018"
+      ],
+      "0007": [
+        "SDT-0011"
+      ],
+      "0009": [
+        "SDT-0009"
+      ],
+      "0010": [
+        "SDT-0028"
+      ],
+      "0011": [
+        "SDT-0021"
+      ],
+      "0012": [
+        "SDT-0007"
+      ],
+      "0013": [
+        "SDT-0003",
+        "SDT-0013",
+        "SDT-0017"
+      ],
+      "0014": [
+        "SDT-0022"
+      ],
+      "0016": [
+        "SDT-0024"
+      ],
+      "0017": [
+        "SDT-0004",
+        "SDT-0025"
+      ],
+      "0018": [
+        "SDT-0027"
+      ],
+      "0019": [
+        "SDT-0014"
+      ],
+      "0020": [
+        "SDT-0002",
+        "SDT-0012",
+        "SDT-0029"
+      ],
+      "0021": [
+        "SDT-0015"
+      ],
+      "0023": [
+        "SDT-0006",
+        "SDT-0026"
+      ],
+      "0025": [
+        "SDT-0005",
+        "SDT-0016"
+      ],
+      "0026": [
+        "SDT-0010"
+      ],
+      "0027": [
+        "SDT-0020"
+      ]
+    }
+  },
+  "id_switches": {
+    "value": 44,
+    "n_tracks": 29,
+    "per_track": {
+      "3": 1,
+      "4": 1,
+      "5": 2,
+      "6": 2,
+      "7": 2,
+      "8": 2,
+      "9": 2,
+      "10": 2,
+      "11": 2,
+      "12": 2,
+      "13": 2,
+      "15": 2,
+      "16": 2,
+      "17": 2,
+      "18": 2,
+      "19": 1,
+      "20": 2,
+      "21": 1,
+      "22": 2,
+      "23": 1,
+      "24": 1,
+      "25": 1,
+      "26": 2,
+      "27": 1,
+      "28": 2,
+      "1": 1,
+      "29": 1
+    }
+  },
+  "cross_camera_reassoc": {
+    "value": 0.28,
+    "ci": {
+      "value": 0.28,
+      "lo": 0.17474170665911232,
+      "hi": 0.4166512369595657,
+      "half_width": 0.12095476515022668,
+      "n": 50
+    },
+    "n_pairs": 50,
+    "detail": [
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0001",
+        "match": true
+      },
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0017",
+        "match": false
+      },
+      {
+        "person": "0005",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0005",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0017",
+        "match": false
+      },
+      {
+        "person": "0013",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0013",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0017",
+        "match": false
+      },
+      {
+        "person": "0015",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0015",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0017",
+        "match": false
+      },
+      {
+        "person": "0016",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0016",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0024",
+        "match": false
+      },
+      {
+        "person": "0017",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0017",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0025",
+        "match": false
+      },
+      {
+        "person": "0019",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0014",
+        "match": false
+      },
+      {
+        "person": "0019",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0014",
+        "to_code": "SDT-0024",
+        "match": false
+      },
+      {
+        "person": "0021",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0015",
+        "match": false
+      },
+      {
+        "person": "0021",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0015",
+        "to_code": "SDT-0015",
+        "match": true
+      },
+      {
+        "person": "0024",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0024",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0024",
+        "match": false
+      },
+      {
+        "person": "0025",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0005",
+        "to_code": "SDT-0016",
+        "match": false
+      },
+      {
+        "person": "0025",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0016",
+        "to_code": "SDT-0016",
+        "match": true
+      },
+      {
+        "person": "0022",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0006",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0022",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0018",
+        "match": true
+      },
+      {
+        "person": "0023",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0006",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0023",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0026",
+        "match": false
+      },
+      {
+        "person": "0018",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0018",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0027",
+        "match": false
+      },
+      {
+        "person": "0001",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0019",
+        "match": false
+      },
+      {
+        "person": "0001",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0019",
+        "to_code": "SDT-0024",
+        "match": false
+      },
+      {
+        "person": "0012",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0007",
+        "to_code": "SDT-0007",
+        "match": true
+      },
+      {
+        "person": "0012",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0007",
+        "to_code": "SDT-0007",
+        "match": true
+      },
+      {
+        "person": "0010",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0007",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0010",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0028",
+        "match": false
+      },
+      {
+        "person": "0006",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0008",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0006",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0017",
+        "match": false
+      },
+      {
+        "person": "0009",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0009",
+        "to_code": "SDT-0009",
+        "match": true
+      },
+      {
+        "person": "0009",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0009",
+        "to_code": "SDT-0009",
+        "match": true
+      },
+      {
+        "person": "0026",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0010",
+        "to_code": "SDT-0010",
+        "match": true
+      },
+      {
+        "person": "0026",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0010",
+        "to_code": "SDT-0010",
+        "match": true
+      },
+      {
+        "person": "0027",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0009",
+        "to_code": "SDT-0020",
+        "match": false
+      },
+      {
+        "person": "0027",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0020",
+        "to_code": "SDT-0020",
+        "match": true
+      },
+      {
+        "person": "0007",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0011",
+        "to_code": "SDT-0011",
+        "match": true
+      },
+      {
+        "person": "0007",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0011",
+        "to_code": "SDT-0011",
+        "match": true
+      },
+      {
+        "person": "0020",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0012",
+        "to_code": "SDT-0020",
+        "match": false
+      },
+      {
+        "person": "0020",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0020",
+        "to_code": "SDT-0029",
+        "match": false
+      },
+      {
+        "person": "0011",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0012",
+        "to_code": "SDT-0021",
+        "match": false
+      },
+      {
+        "person": "0011",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0021",
+        "to_code": "SDT-0021",
+        "match": true
+      },
+      {
+        "person": "0014",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0010",
+        "to_code": "SDT-0022",
+        "match": false
+      },
+      {
+        "person": "0014",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0022",
+        "to_code": "SDT-0028",
+        "match": false
+      },
+      {
+        "person": "0004",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0023",
+        "match": false
+      },
+      {
+        "person": "0004",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0023",
+        "to_code": "SDT-0024",
+        "match": false
+      }
+    ]
+  },
+  "runtime": {
+    "n_frames": 6876,
+    "mean_frame_latency_ms": 66.19294667962888,
+    "median_frame_latency_ms": 59.55995901604183,
+    "throughput_fps": 15.107349803294882,
+    "total_wall_seconds": 455.1427013691282,
+    "machine": "Apple M5 (CPU inference, ONNXRuntime CPUExecutionProvider)"
+  },
+  "n_records": 2908,
+  "config_file": "B_face_anchor.json",
+  "config_flags": {
+    "enable_face_anchor": true,
+    "enable_colour_fallback": true,
+    "enable_reid_fallback": true,
+    "enable_id_switch_guard": false,
+    "enable_evidence_gating": false
+  },
+  "dataset": {
+    "adapter": "chokepoint",
+    "root": "/Users/lokii/Downloads/Smart-Detect-main/eval/data/chokepoint"
+  },
+  "sighting_dedup_seconds": 0.0,
+  "harness_notes": [
+    "head-zoom second pass not exercised offline (needs capture state from LiveStream.start()); face recall here is a lower bound vs production"
+  ]
+}

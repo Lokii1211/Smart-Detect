@@ -165,3 +165,15 @@ export function mediaUrl(pathOrUrl) {
   const t = sessionStorage.getItem('sd_stream_token')
   return t ? base + (base.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(t) : base
 }
+
+/**
+ * URL for an MJPEG stream, with the token appended correctly and an
+ * optional cache-buster. Callers must NOT hand-append '?t=' to a mediaUrl:
+ * the URL already carries ?token=..., so a second '?' corrupts the token and
+ * the stream 401s forever ("Reconnecting in 3s…").
+ */
+export function streamMediaUrl(cameraId, bust = false) {
+  let url = mediaUrl(`camera/stream/${cameraId}`)
+  if (bust) url += (url.includes('?') ? '&' : '?') + 't=' + Date.now()
+  return url
+}

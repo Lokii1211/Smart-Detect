@@ -1,0 +1,167 @@
+{
+  "buckets": {
+    "n_total": 41,
+    "n_correct": 40,
+    "n_contaminated": 0,
+    "n_unassigned": 1,
+    "frac_correct": 0.975609756097561,
+    "frac_contaminated": 0.0,
+    "frac_unassigned": 0.024390243902439025,
+    "ci_correct": {
+      "value": 0.975609756097561,
+      "lo": 0.8740493794422576,
+      "hi": 0.9956814684310874,
+      "half_width": 0.06081604449441496,
+      "n": 41
+    },
+    "ci_contaminated": {
+      "value": 0.0,
+      "lo": 0.0,
+      "hi": 0.08566757018443186,
+      "half_width": 0.042833785092215935,
+      "n": 41
+    },
+    "ci_unassigned": {
+      "value": 0.024390243902439025,
+      "lo": 0.004318531568912404,
+      "hi": 0.1259506205577423,
+      "half_width": 0.06081604449441495,
+      "n": 41
+    },
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 1,
+    "sums_to_one": true
+  },
+  "identity_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.9123783988027135,
+      "hi": 1.0,
+      "half_width": 0.043810800598643326,
+      "n": 40
+    },
+    "n_correct": 40,
+    "n_assigned": 40
+  },
+  "identity_coverage": {
+    "value": 0.975609756097561,
+    "ci": {
+      "value": 0.975609756097561,
+      "lo": 0.8740493794422576,
+      "hi": 0.9956814684310874,
+      "half_width": 0.06081604449441496,
+      "n": 41
+    },
+    "n_assigned": 40,
+    "n_total": 41,
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 1
+  },
+  "evidence_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.8830302015002593,
+      "hi": 1.0,
+      "half_width": 0.058484899249870374,
+      "n": 29
+    },
+    "n_written": 29,
+    "n_correct": 29,
+    "n_wrong": 0,
+    "evidence_yield": 0.7073170731707317,
+    "evidence_yield_ci": {
+      "value": 0.7073170731707317,
+      "lo": 0.5552053227700284,
+      "hi": 0.8239081237388657,
+      "half_width": 0.13435140048441865,
+      "n": 41
+    }
+  },
+  "identity_purity": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.34238022750665303,
+      "hi": 1.0,
+      "half_width": 0.32880988624667346,
+      "n": 2
+    },
+    "n_codes": 2,
+    "impure_codes": []
+  },
+  "fragmentation": {
+    "value": 2.0,
+    "n_people": 1,
+    "per_person": {
+      "0003": 2
+    }
+  },
+  "duplicate_identities": {
+    "value": 1.0,
+    "n_people": 1,
+    "total_duplicates": 1,
+    "people_with_duplicates": 1,
+    "per_person": {
+      "0003": 1
+    },
+    "codes_owned": {
+      "0003": [
+        "SDT-0001",
+        "SDT-0002"
+      ]
+    }
+  },
+  "id_switches": {
+    "value": 0,
+    "n_tracks": 2,
+    "per_track": {}
+  },
+  "cross_camera_reassoc": {
+    "value": 0.0,
+    "ci": {
+      "value": 0.0,
+      "lo": 0.0,
+      "hi": 0.7934506856227626,
+      "half_width": 0.3967253428113813,
+      "n": 1
+    },
+    "n_pairs": 1,
+    "detail": [
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0002",
+        "match": false
+      }
+    ]
+  },
+  "runtime": {
+    "n_frames": 750,
+    "mean_frame_latency_ms": 130.78278893604875,
+    "median_frame_latency_ms": 45.00404201098718,
+    "throughput_fps": 7.646266057906047,
+    "total_wall_seconds": 98.08709170203656,
+    "machine": "Apple M5 (CPU inference, ONNXRuntime CPUExecutionProvider)"
+  },
+  "n_records": 41,
+  "config_file": "D_full.json",
+  "config_flags": {
+    "enable_face_anchor": true,
+    "enable_colour_fallback": true,
+    "enable_reid_fallback": true,
+    "enable_id_switch_guard": true,
+    "enable_evidence_gating": true
+  },
+  "dataset": {
+    "adapter": "chokepoint",
+    "root": "/Users/lokii/Downloads/Smart-Detect-main/eval/data/chokepoint"
+  },
+  "sighting_dedup_seconds": 0.0,
+  "harness_notes": [
+    "head-zoom second pass not exercised offline (needs capture state from LiveStream.start()); face recall here is a lower bound vs production"
+  ]
+}

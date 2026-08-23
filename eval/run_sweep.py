@@ -19,7 +19,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))   # importable as `python eval/run_sweep.py`
-CONFIGS = ["A_pre_hardening", "B_face_anchor", "C_plus_guard", "D_full"]
+CONFIGS = ["A_pre_hardening", "B_face_anchor", "C_plus_guard", "D_full",
+           "F_tracklet_mean"]
+# F is first-class, not an experiment: on the full corpus it is the only
+# mechanism in this project measured to improve duplicates, precision,
+# purity AND coverage at once (1.36 -> 0.72 duplicates, 0 contaminated
+# person-frames, 98.6% -> 99.7% coverage) while costing less per frame.
 
 
 def fmt(v, nd=3, pct=False):
@@ -48,19 +53,30 @@ def main() -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Dataset adequacy gate ───────────────────────────────────────────────
+    # The gate MUST see --max-frames. It is a claim about the frames that will
+    # be scored, not about the frames present on disk: validating the full
+    # corpus and then scoring a truncated subset is how a 25-identity corpus
+    # emitted a 14-identity results table while printing PASS.
     from eval.validate_dataset import validate, format_report
-    val = validate(args.adapter, args.data_root)
+    val = validate(args.adapter, args.data_root, max_frames=args.max_frames)
     print(format_report(val, args.adapter, str(Path(args.data_root).resolve())))
     (results_dir / "dataset_validation.json").write_text(json.dumps(val, indent=2))
     if not val["passed"]:
         if not args.allow_underpowered:
+            extra = ""
+            if args.max_frames:
+                extra = (f"\nNOTE: this run is capped at --max-frames {args.max_frames} per\n"
+                         f"sequence. The gates above describe THAT truncated set, not the\n"
+                         f"full corpus. Removing or raising the cap may pass the gate.")
             sys.exit(
-                "\nABLATION BLOCKED: dataset below minimum adequacy (see gates above).\n"
-                "Add labelled data, or pass --allow-underpowered to smoke-test the\n"
-                "pipeline — in which case the output is NOT a reportable result."
+                "\nABLATION BLOCKED: the SCORED frame set is below minimum adequacy\n"
+                "(see gates above).\n"
+                "Add labelled data, raise --max-frames, or pass --allow-underpowered to\n"
+                "smoke-test the pipeline — in which case the output is NOT a reportable\n"
+                f"result.{extra}"
             )
-        print("\n*** --allow-underpowered SET: continuing on an inadequate dataset. ***")
-        print("*** Output is a pipeline smoke-test, NOT a reportable result.    ***\n")
+        print("\n*** --allow-underpowered SET: continuing on an inadequate scored set. ***")
+        print("*** Output is a pipeline smoke-test, NOT a reportable result.        ***\n")
 
     all_metrics = {}
     for name in CONFIGS:
@@ -95,8 +111,15 @@ def main() -> None:
             "> Confidence intervals below show how little these point estimates constrain.",
             "",
         ]
+    vs_ok = val["stats"]
     lines += [
         f"Dataset: `{first['dataset']['adapter']}` at `{first['dataset']['root']}`  ",
+        ("Frame set: **full corpus, no cap**  " if not args.max_frames else
+         f"Frame set: **truncated to the first {args.max_frames} frames per sequence** "
+         f"— gates below describe this scored subset  "),
+        f"Scored corpus: {vs_ok['n_identities']} identities · {vs_ok['n_frames']} labelled frames "
+        f"· {vs_ok['n_cross_camera_transitions']} cross-camera transitions "
+        f"(gate: {15}/{1000}/{10})  ",
         f"Frames per config: {first['runtime']['n_frames']}  ",
         f"Scored assignment records per config: {first['n_records']}  ",
         f"Machine: {first['runtime']['machine']}",

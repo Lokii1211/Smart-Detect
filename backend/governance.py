@@ -169,7 +169,11 @@ def erase_person(db: Session, unique_code: str, *, actor: str,
     Erase every trace of one identity, then VERIFY and record a receipt.
 
     Removes: Person row (embeddings, templates, re-ID vector, dress colour),
-    all Sighting rows, and the entire snapshots/<code>/ directory.
+    all Sighting rows, the entire snapshots/<code>/ directory, and any
+    in-memory reference cached in a running LiveStream (tracker->code cache,
+    live/recent-detections buffers) so a deleted identity cannot keep
+    surfacing on a live camera view or GET /persons/live purely because a
+    stream resolved it earlier this session.
 
     Retains: the ErasureReceipt and the AuditLog trail, both of which hold the
     SDT code but no biometric data. Keeping proof-of-deletion is compatible
@@ -206,6 +210,19 @@ def erase_person(db: Session, unique_code: str, *, actor: str,
         except OSError as exc:
             snapshot_error = str(exc)
 
+    # Purge any running LiveStream's in-memory cache of this code (tracker ->
+    # code map, live/recent-detections buffers) — lazy import to avoid a
+    # governance <-> cameras import cycle, and never fatal: a cache-purge
+    # failure must not undo a completed database/filesystem erasure.
+    live_cache_entries_removed = 0
+    try:
+        from cameras.live_stream import purge_identity as _purge_live_identity
+        live_cache_entries_removed = _purge_live_identity(unique_code)
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).error(
+            "live-cache purge failed for %s: %s", unique_code, exc)
+
     # ── Verify: re-query and re-stat rather than trusting the writes ────────
     person_gone = db.query(Person).filter(
         Person.unique_code == unique_code).first() is None
@@ -227,6 +244,7 @@ def erase_person(db: Session, unique_code: str, *, actor: str,
             "sighting_rows_removed": sightings_gone,
             "snapshot_files_removed": snapshots_gone,
             "snapshot_error": snapshot_error,
+            "live_cache_entries_removed": live_cache_entries_removed,
         }),
     )
     db.add(receipt)
@@ -245,6 +263,7 @@ def erase_person(db: Session, unique_code: str, *, actor: str,
         "sightings_deleted": int(sightings_deleted or 0),
         "snapshots_deleted": snapshots_before,
         "embeddings_cleared": embeddings_cleared,
+        "live_cache_entries_removed": live_cache_entries_removed,
         "verified": verified,
         "receipt_id": receipt.id,
         "snapshot_error": snapshot_error,

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { getToken as sdGetToken, mediaUrl } from '../auth'
+import Lightbox from '../components/Lightbox'
+import MergeSuggestionBanner from '../components/MergeSuggestionBanner'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -30,6 +32,7 @@ const TYPE_COLORS = {
 function PersonAppearances({ code }) {
   const [detail, setDetail] = useState(null)
   const [error,  setError]  = useState(false)
+  const [zoom,   setZoom]   = useState(null)   // frame enlarged in lightbox
 
   useEffect(() => {
     axios.get(`${API}/persons/${code}`)
@@ -65,10 +68,14 @@ function PersonAppearances({ code }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {shots.slice(-12).reverse().map((a, i) => (
             <div key={i} style={{ width: 92 }}>
-              <div style={{
-                width: 92, height: 92, borderRadius: 8, overflow: 'hidden',
-                background: '#f0f0f0', border: '0.5px solid #e8e8e8',
-              }}>
+              <div
+                onClick={() => setZoom(a.snapshot)}
+                title="Click to enlarge"
+                style={{
+                  width: 92, height: 92, borderRadius: 8, overflow: 'hidden',
+                  background: '#f0f0f0', border: '0.5px solid #e8e8e8',
+                  cursor: 'zoom-in',
+                }}>
                 <img src={mediaUrl(a.snapshot)} alt=""
                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                      onError={e => { e.target.parentElement.style.display = 'none' }} />
@@ -81,26 +88,17 @@ function PersonAppearances({ code }) {
           ))}
         </div>
       )}
+
+      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   )
 }
 
 // Duplicate-code suggestions: same face registered under two SDT codes
-function DuplicateSuggestions({ onMerged }) {
-  const [pairs,   setPairs]   = useState([])
+function DuplicateSuggestions({ pairs, refresh }) {
   const [busy,    setBusy]    = useState(null)   // code being merged
   const [hidden,  setHidden]  = useState(new Set())
-
-  const fetchPairs = async () => {
-    try {
-      const token = await ensureToken()
-      const r = await axios.get(`${API}/persons/duplicate-suggestions`,
-        { headers: authHeaders(token) })
-      setPairs(r.data || [])
-    } catch { /* endpoint unavailable — hide silently */ }
-  }
-
-  useEffect(() => { fetchPairs() }, [])
+  const [zoom,    setZoom]    = useState(null)   // photo enlarged in lightbox
 
   const merge = async (from, into) => {
     if (!window.confirm(`Merge ${from} into ${into}? ${from} will be deleted and all its sightings and photos move to ${into}. This cannot be undone.`)) return
@@ -109,14 +107,13 @@ function DuplicateSuggestions({ onMerged }) {
       const token = await ensureToken()
       await axios.post(`${API}/persons/${from}/merge-into/${into}`, {},
         { headers: authHeaders(token) })
-      await fetchPairs()
-      onMerged()
+      await refresh()
     } catch (e) {
       alert(e.response?.data?.detail || 'Merge failed')
     } finally { setBusy(null) }
   }
 
-  const visible = pairs.filter(p => !hidden.has(p.code_a + p.code_b))
+  const visible = (pairs || []).filter(p => !hidden.has(p.code_a + p.code_b))
   if (visible.length === 0) return null
 
   return (
@@ -133,10 +130,15 @@ function DuplicateSuggestions({ onMerged }) {
             display: 'flex', alignItems: 'center', gap: 8, fontSize: 11,
           }}>
             {[p.photo_a, p.photo_b].map((ph, i) => (
-              <div key={i} style={{
-                width: 30, height: 30, borderRadius: 6, overflow: 'hidden',
-                background: '#f0f0f0', flexShrink: 0,
-              }}>
+              <div
+                key={i}
+                onClick={() => ph && setZoom(ph)}
+                title={ph ? 'Click to enlarge' : undefined}
+                style={{
+                  width: 30, height: 30, borderRadius: 6, overflow: 'hidden',
+                  background: '#f0f0f0', flexShrink: 0,
+                  cursor: ph ? 'zoom-in' : 'default',
+                }}>
                 {ph && <img src={mediaUrl(ph)} alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={e => { e.target.style.display = 'none' }} />}
@@ -170,14 +172,17 @@ function DuplicateSuggestions({ onMerged }) {
           </div>
         ))}
       </div>
+
+      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   )
 }
 
-function PersonRow({ p, onSaved, expanded, onToggle }) {
+function PersonRow({ p, onSaved, expanded, onToggle, suggestions = [], onMerged }) {
   const [editing, setEditing] = useState(false)
   const [name, setName]       = useState(p.display_name || '')
   const [saving, setSaving]   = useState(false)
+  const [zoom,   setZoom]     = useState(null)   // photo enlarged in lightbox
 
   const save = async () => {
     setSaving(true)
@@ -211,12 +216,16 @@ function PersonRow({ p, onSaved, expanded, onToggle }) {
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '10px 14px', cursor: 'pointer',
     }}>
-      {/* Photo */}
-      <div style={{
-        width: 44, height: 44, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
-        background: '#f0f0f0', border: '0.5px solid #e8e8e8',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
+      {/* Photo — click to enlarge */}
+      <div
+        onClick={e => { e.stopPropagation(); if (photoUrl) setZoom(photoUrl) }}
+        title={photoUrl ? 'Click to enlarge' : undefined}
+        style={{
+          width: 44, height: 44, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
+          background: '#f0f0f0', border: '0.5px solid #e8e8e8',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: photoUrl ? 'zoom-in' : 'default',
+        }}>
         {photoUrl ? (
           <img src={photoUrl} alt={p.unique_code}
                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -304,7 +313,16 @@ function PersonRow({ p, onSaved, expanded, onToggle }) {
       }}>▶</span>
     </div>
 
+    {/* High-confidence duplicate suggestions for THIS person — inline */}
+    {suggestions.map(pair => (
+      <div key={pair.code_a + pair.code_b} style={{ padding: '0 14px 10px 70px' }}>
+        <MergeSuggestionBanner pair={pair} code={p.unique_code} onMerged={onMerged} />
+      </div>
+    ))}
+
     {expanded && <PersonAppearances code={p.unique_code} />}
+
+    {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   )
 }
@@ -313,6 +331,7 @@ export default function People() {
   const [persons, setPersons] = useState(null)
   const [query,   setQuery]   = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
+  const [pairs,   setPairs]   = useState([])   // duplicate-suggestion pairs
   // ?code=SDT-0001 (from Photo Search) opens that person's appearances
   const expandedCode = searchParams.get('code')
 
@@ -320,11 +339,28 @@ export default function People() {
     axios.get(`${API}/persons`).then(r => setPersons(r.data)).catch(() => setPersons([]))
   }
 
+  const fetchPairs = async () => {
+    try {
+      const token = await ensureToken()
+      const r = await axios.get(`${API}/persons/duplicate-suggestions`,
+        { headers: authHeaders(token) })
+      setPairs(r.data || [])
+    } catch { /* endpoint unavailable — hide silently */ }
+  }
+
   useEffect(() => {
     fetchPersons()
+    fetchPairs()
     const iv = setInterval(fetchPersons, 10000)
     return () => clearInterval(iv)
   }, [])
+
+  // Any merge (top banner or inline row banner) refreshes both lists
+  const refreshAll = () => { fetchPersons(); fetchPairs() }
+
+  // High-confidence (>=85%) suggestions involving one specific person
+  const highConfFor = (code) => (pairs || []).filter(p =>
+    p.similarity >= 0.85 && (p.code_a === code || p.code_b === code))
 
   const toggle = (code) => {
     setSearchParams(code === expandedCode ? {} : { code }, { replace: true })
@@ -358,7 +394,7 @@ export default function People() {
           />
         </div>
 
-        <DuplicateSuggestions onMerged={fetchPersons} />
+        <DuplicateSuggestions pairs={pairs} refresh={refreshAll} />
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {persons === null ? (
@@ -370,7 +406,9 @@ export default function People() {
           ) : filtered.map(p => (
             <PersonRow key={p.unique_code} p={p} onSaved={fetchPersons}
               expanded={p.unique_code === expandedCode}
-              onToggle={() => toggle(p.unique_code)} />
+              onToggle={() => toggle(p.unique_code)}
+              suggestions={highConfFor(p.unique_code)}
+              onMerged={refreshAll} />
           ))}
         </div>
       </div>

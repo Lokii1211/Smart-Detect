@@ -1,0 +1,18 @@
+{
+  "_name": "F \u2014 full pipeline + tracklet voting (mean)",
+  "_mechanisms_active": [
+    "Everything in C (Method 1, face_says_stranger gate, face_veto, ID-switch guard)",
+    "evidence gating \u2014 a sighting/photo is filed ONLY when a gate-passing face directly confirms the code THIS cycle (or the code was freshly earned from that face). A cached/inherited code with no reconfirming face this cycle keeps its live on-screen label but writes no evidence."
+  ],
+  "_mechanisms_disabled": [],
+  "_registration_note": "Same registration rule as A/B/C: a visible face is required to mint a new code. This file changes nothing about registration relative to the others \u2014 the difference across all 4 ablation configs is entirely about how EXISTING identities are protected from being merged or hijacked.",
+  "_verified": "Confirmed byte-identical to running with no SMARTDETECT_IDENTITY_CONFIG set at all (scripts/purity_eval.py output diffed, exit 0) \u2014 this file exists so the ablation sweep has an explicit 'current behavior' entry rather than relying on an implicit unset-env-var case.",
+  "enable_face_anchor": true,
+  "enable_id_switch_guard": true,
+  "enable_evidence_gating": true,
+  "_note": "Identity flags identical to D_full. The only change is that identity commits once per TRACK from aggregated evidence instead of on the first gate-passing frame. Before commit the track is 'Detecting...', which costs coverage on short tracks \u2014 that cost is measured, not hidden.",
+  "enable_tracklet_voting": true,
+  "tracklet_vote_strategy": "mean",
+  "tracklet_commit_k": 3,
+  "tracklet_buffer_size": 10
+}

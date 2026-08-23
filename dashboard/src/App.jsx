@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Login from './pages/Login.jsx'
-import { isAuthenticated, installAuthInterceptor, logout, primeStreamToken } from './auth'
+import { isAuthenticated, installAuthInterceptor, logout, primeStreamToken, getStreamToken } from './auth'
 import Sidebar from './components/Sidebar.jsx'
 import TopBar  from './components/TopBar.jsx'
 import Dashboard   from './pages/Dashboard.jsx'
@@ -73,8 +73,17 @@ export default function App() {
   }, [])
 
   // <img> tags cannot send Authorization headers, so mint the short-lived
-  // stream token once per session before any media renders.
-  useEffect(() => { if (authed) primeStreamToken() }, [authed])
+  // stream token once per session before any media renders — then refresh
+  // it well before the 60-min expiry. Without this, every MJPEG stream and
+  // snapshot <img> 401s after an hour in a long-lived tab ("Reconnecting
+  // in 3s…" loops). mediaUrl() reads the token synchronously from
+  // sessionStorage, so a background refresh is all it takes.
+  useEffect(() => {
+    if (!authed) return
+    primeStreamToken()
+    const iv = setInterval(() => getStreamToken(true).catch(() => {}), 25 * 60 * 1000)
+    return () => clearInterval(iv)
+  }, [authed])
 
   if (!authed) return <Login onSuccess={() => setAuthed(true)} />
 

@@ -1,0 +1,2489 @@
+{
+  "n_rows": 2833,
+  "n_identities": 25,
+  "margin": {
+    "min": 0.17586366832256317,
+    "median": 0.5965467095375061,
+    "max": 0.8593699932098389,
+    "frac_safe": 1.0
+  },
+  "fixed_gate": {
+    "coverage": 0.9996470172961525,
+    "precision": 1.0,
+    "n_refused": 1,
+    "n_refused_but_discriminative": 1
+  },
+  "cv": {
+    "tree_pearson": 0.7229237704644029,
+    "tree_spearman": 0.710063934039707,
+    "mlp_pearson": 0.5581416425348739,
+    "mlp_spearman": 0.6193728622203659,
+    "folds": [
+      {
+        "n_train_ids": 20,
+        "n_test_ids": 5,
+        "n_test_rows": 571,
+        "pearson": 0.7014384154314401,
+        "spearman": 0.6986194478342451,
+        "mae": 0.07792769372463226
+      },
+      {
+        "n_train_ids": 20,
+        "n_test_ids": 5,
+        "n_test_rows": 562,
+        "pearson": 0.8394958184263608,
+        "spearman": 0.8574977213994561,
+        "mae": 0.06978340446949005
+      },
+      {
+        "n_train_ids": 20,
+        "n_test_ids": 5,
+        "n_test_rows": 565,
+        "pearson": 0.7527237957550611,
+        "spearman": 0.70407172635674,
+        "mae": 0.06430460512638092
+      },
+      {
+        "n_train_ids": 20,
+        "n_test_ids": 5,
+        "n_test_rows": 570,
+        "pearson": 0.7497232819603197,
+        "spearman": 0.7583308426799658,
+        "mae": 0.07234877347946167
+      },
+      {
+        "n_train_ids": 20,
+        "n_test_ids": 5,
+        "n_test_rows": 565,
+        "pearson": 0.721363403087019,
+        "spearman": 0.7193913942224095,
+        "mae": 0.08328267186880112
+      }
+    ]
+  },
+  "learned_at_fixed_precision": {
+    "threshold": 0.29639941453933716,
+    "coverage": 1.0,
+    "precision": 1.0,
+    "n_admitted": 2833
+  },
+  "importance": {
+    "face_w_px": 0.18764056308715973,
+    "yaw": 0.17582902407528067,
+    "face_h_px": 0.1343238983456422,
+    "pitch": 0.06939832705536916,
+    "det_score": 0.06617362205261723,
+    "face_to_person_ratio": 0.06052753313295911,
+    "frontality": 0.01630740641183875,
+    "roll": 0.008180408618960551,
+    "occlusion_frac": 0.0,
+    "contrast": -0.0043913861262832475,
+    "blur_var_laplacian": -0.012293954009895266,
+    "brightness": -0.043517091902562026
+  },
+  "inference_ms": 0.007464870849798899,
+  "curve_learned": [
+    {
+      "threshold": 0.29639941453933716,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "n_admitted": 2833
+    },
+    {
+      "threshold": 0.3442278183884357,
+      "coverage": 0.9947052594422874,
+      "precision": 1.0,
+      "n_admitted": 2818
+    },
+    {
+      "threshold": 0.3629599963899833,
+      "coverage": 0.9897635015884222,
+      "precision": 1.0,
+      "n_admitted": 2804
+    },
+    {
+      "threshold": 0.3748894103208379,
+      "coverage": 0.984821743734557,
+      "precision": 1.0,
+      "n_admitted": 2790
+    },
+    {
+      "threshold": 0.38031388167759883,
+      "coverage": 0.9798799858806918,
+      "precision": 1.0,
+      "n_admitted": 2776
+    },
+    {
+      "threshold": 0.3850346836612452,
+      "coverage": 0.9745852453229792,
+      "precision": 1.0,
+      "n_admitted": 2761
+    },
+    {
+      "threshold": 0.3882518591892779,
+      "coverage": 0.969643487469114,
+      "precision": 1.0,
+      "n_admitted": 2747
+    },
+    {
+      "threshold": 0.3930255772180893,
+      "coverage": 0.9647017296152488,
+      "precision": 1.0,
+      "n_admitted": 2733
+    },
+    {
+      "threshold": 0.39517998695373535,
+      "coverage": 0.9597599717613837,
+      "precision": 1.0,
+      "n_admitted": 2719
+    },
+    {
+      "threshold": 0.39846318241339834,
+      "coverage": 0.954465231203671,
+      "precision": 1.0,
+      "n_admitted": 2704
+    },
+    {
+      "threshold": 0.4016392624857438,
+      "coverage": 0.9495234733498059,
+      "precision": 1.0,
+      "n_admitted": 2690
+    },
+    {
+      "threshold": 0.40543624953408935,
+      "coverage": 0.9445817154959407,
+      "precision": 1.0,
+      "n_admitted": 2676
+    },
+    {
+      "threshold": 0.40807074338347465,
+      "coverage": 0.9396399576420755,
+      "precision": 1.0,
+      "n_admitted": 2662
+    },
+    {
+      "threshold": 0.4106162855373555,
+      "coverage": 0.9343452170843629,
+      "precision": 1.0,
+      "n_admitted": 2647
+    },
+    {
+      "threshold": 0.41185063138679046,
+      "coverage": 0.9294034592304977,
+      "precision": 1.0,
+      "n_admitted": 2633
+    },
+    {
+      "threshold": 0.41428376936433303,
+      "coverage": 0.9244617013766325,
+      "precision": 1.0,
+      "n_admitted": 2619
+    },
+    {
+      "threshold": 0.41698324201095044,
+      "coverage": 0.9195199435227673,
+      "precision": 1.0,
+      "n_admitted": 2605
+    },
+    {
+      "threshold": 0.41944067157692644,
+      "coverage": 0.9145781856689023,
+      "precision": 1.0,
+      "n_admitted": 2591
+    },
+    {
+      "threshold": 0.4231947461264816,
+      "coverage": 0.9092834451111895,
+      "precision": 1.0,
+      "n_admitted": 2576
+    },
+    {
+      "threshold": 0.4248580420436572,
+      "coverage": 0.9043416872573244,
+      "precision": 1.0,
+      "n_admitted": 2562
+    },
+    {
+      "threshold": 0.4264330260418168,
+      "coverage": 0.8993999294034593,
+      "precision": 1.0,
+      "n_admitted": 2548
+    },
+    {
+      "threshold": 0.4283957734479377,
+      "coverage": 0.8944581715495941,
+      "precision": 1.0,
+      "n_admitted": 2534
+    },
+    {
+      "threshold": 0.43217891694313315,
+      "coverage": 0.8891634309918814,
+      "precision": 1.0,
+      "n_admitted": 2519
+    },
+    {
+      "threshold": 0.4332526228835235,
+      "coverage": 0.8842216731380163,
+      "precision": 1.0,
+      "n_admitted": 2505
+    },
+    {
+      "threshold": 0.4358080275094689,
+      "coverage": 0.8792799152841511,
+      "precision": 1.0,
+      "n_admitted": 2491
+    },
+    {
+      "threshold": 0.4376553695405548,
+      "coverage": 0.8743381574302859,
+      "precision": 1.0,
+      "n_admitted": 2477
+    },
+    {
+      "threshold": 0.4401310682296753,
+      "coverage": 0.8693963995764208,
+      "precision": 1.0,
+      "n_admitted": 2463
+    },
+    {
+      "threshold": 0.4428783762994124,
+      "coverage": 0.8641016590187081,
+      "precision": 1.0,
+      "n_admitted": 2448
+    },
+    {
+      "threshold": 0.44517189668650603,
+      "coverage": 0.859159901164843,
+      "precision": 1.0,
+      "n_admitted": 2434
+    },
+    {
+      "threshold": 0.4472675293534245,
+      "coverage": 0.8542181433109778,
+      "precision": 1.0,
+      "n_admitted": 2420
+    },
+    {
+      "threshold": 0.4493116910134129,
+      "coverage": 0.8492763854571126,
+      "precision": 1.0,
+      "n_admitted": 2406
+    },
+    {
+      "threshold": 0.4516293455907448,
+      "coverage": 0.8439816448994,
+      "precision": 1.0,
+      "n_admitted": 2391
+    },
+    {
+      "threshold": 0.4537400998661865,
+      "coverage": 0.8390398870455348,
+      "precision": 1.0,
+      "n_admitted": 2377
+    },
+    {
+      "threshold": 0.45583659335596477,
+      "coverage": 0.8340981291916696,
+      "precision": 1.0,
+      "n_admitted": 2363
+    },
+    {
+      "threshold": 0.45873282527803777,
+      "coverage": 0.8291563713378044,
+      "precision": 1.0,
+      "n_admitted": 2349
+    },
+    {
+      "threshold": 0.4622312899510465,
+      "coverage": 0.8238616307800918,
+      "precision": 1.0,
+      "n_admitted": 2334
+    },
+    {
+      "threshold": 0.46591238295612625,
+      "coverage": 0.8189198729262266,
+      "precision": 1.0,
+      "n_admitted": 2320
+    },
+    {
+      "threshold": 0.469374150936328,
+      "coverage": 0.8139781150723615,
+      "precision": 1.0,
+      "n_admitted": 2306
+    },
+    {
+      "threshold": 0.4715932436923885,
+      "coverage": 0.8090363572184963,
+      "precision": 1.0,
+      "n_admitted": 2292
+    },
+    {
+      "threshold": 0.4731496798632732,
+      "coverage": 0.8037416166607836,
+      "precision": 1.0,
+      "n_admitted": 2277
+    },
+    {
+      "threshold": 0.47496982570269597,
+      "coverage": 0.7987998588069185,
+      "precision": 1.0,
+      "n_admitted": 2263
+    },
+    {
+      "threshold": 0.47735857768873474,
+      "coverage": 0.7938581009530533,
+      "precision": 1.0,
+      "n_admitted": 2249
+    },
+    {
+      "threshold": 0.48064127459597944,
+      "coverage": 0.7889163430991881,
+      "precision": 1.0,
+      "n_admitted": 2235
+    },
+    {
+      "threshold": 0.4845049427681832,
+      "coverage": 0.7839745852453229,
+      "precision": 1.0,
+      "n_admitted": 2221
+    },
+    {
+      "threshold": 0.48773915968348636,
+      "coverage": 0.7786798446876103,
+      "precision": 1.0,
+      "n_admitted": 2206
+    },
+    {
+      "threshold": 0.4905387251520876,
+      "coverage": 0.7737380868337451,
+      "precision": 1.0,
+      "n_admitted": 2192
+    },
+    {
+      "threshold": 0.4931502072655376,
+      "coverage": 0.76879632897988,
+      "precision": 1.0,
+      "n_admitted": 2178
+    },
+    {
+      "threshold": 0.496058902848306,
+      "coverage": 0.7638545711260148,
+      "precision": 1.0,
+      "n_admitted": 2164
+    },
+    {
+      "threshold": 0.4984361354130596,
+      "coverage": 0.7585598305683021,
+      "precision": 1.0,
+      "n_admitted": 2149
+    },
+    {
+      "threshold": 0.5007328891274917,
+      "coverage": 0.753618072714437,
+      "precision": 1.0,
+      "n_admitted": 2135
+    },
+    {
+      "threshold": 0.5049145122868332,
+      "coverage": 0.7486763148605718,
+      "precision": 1.0,
+      "n_admitted": 2121
+    },
+    {
+      "threshold": 0.5077721311818415,
+      "coverage": 0.7437345570067067,
+      "precision": 1.0,
+      "n_admitted": 2107
+    },
+    {
+      "threshold": 0.5110817934999514,
+      "coverage": 0.738439816448994,
+      "precision": 1.0,
+      "n_admitted": 2092
+    },
+    {
+      "threshold": 0.5131098361470592,
+      "coverage": 0.7334980585951288,
+      "precision": 1.0,
+      "n_admitted": 2078
+    },
+    {
+      "threshold": 0.5169673505140908,
+      "coverage": 0.7285563007412637,
+      "precision": 1.0,
+      "n_admitted": 2064
+    },
+    {
+      "threshold": 0.5197331240428752,
+      "coverage": 0.7236145428873986,
+      "precision": 1.0,
+      "n_admitted": 2050
+    },
+    {
+      "threshold": 0.5218325562812575,
+      "coverage": 0.7186727850335334,
+      "precision": 1.0,
+      "n_admitted": 2036
+    },
+    {
+      "threshold": 0.5251774569252627,
+      "coverage": 0.7133780444758206,
+      "precision": 1.0,
+      "n_admitted": 2021
+    },
+    {
+      "threshold": 0.5281929203014278,
+      "coverage": 0.7084362866219556,
+      "precision": 1.0,
+      "n_admitted": 2007
+    },
+    {
+      "threshold": 0.5308519964242101,
+      "coverage": 0.7034945287680904,
+      "precision": 1.0,
+      "n_admitted": 1993
+    },
+    {
+      "threshold": 0.5335924996802556,
+      "coverage": 0.6985527709142252,
+      "precision": 1.0,
+      "n_admitted": 1979
+    },
+    {
+      "threshold": 0.5352915034222243,
+      "coverage": 0.6932580303565126,
+      "precision": 1.0,
+      "n_admitted": 1964
+    },
+    {
+      "threshold": 0.5367141584655148,
+      "coverage": 0.6883162725026474,
+      "precision": 1.0,
+      "n_admitted": 1950
+    },
+    {
+      "threshold": 0.5396980619310734,
+      "coverage": 0.6833745146487822,
+      "precision": 1.0,
+      "n_admitted": 1936
+    },
+    {
+      "threshold": 0.5411882451431236,
+      "coverage": 0.6784327567949171,
+      "precision": 1.0,
+      "n_admitted": 1922
+    },
+    {
+      "threshold": 0.5434927940368652,
+      "coverage": 0.6734909989410519,
+      "precision": 1.0,
+      "n_admitted": 1908
+    },
+    {
+      "threshold": 0.5455953634564003,
+      "coverage": 0.6681962583833392,
+      "precision": 1.0,
+      "n_admitted": 1893
+    },
+    {
+      "threshold": 0.5484407714862919,
+      "coverage": 0.6632545005294741,
+      "precision": 1.0,
+      "n_admitted": 1879
+    },
+    {
+      "threshold": 0.5495670285057183,
+      "coverage": 0.6583127426756089,
+      "precision": 1.0,
+      "n_admitted": 1865
+    },
+    {
+      "threshold": 0.5510583358194361,
+      "coverage": 0.6533709848217437,
+      "precision": 1.0,
+      "n_admitted": 1851
+    },
+    {
+      "threshold": 0.5537883037298768,
+      "coverage": 0.6480762442640311,
+      "precision": 1.0,
+      "n_admitted": 1836
+    },
+    {
+      "threshold": 0.5557785369643015,
+      "coverage": 0.6431344864101659,
+      "precision": 1.0,
+      "n_admitted": 1822
+    },
+    {
+      "threshold": 0.557392696938922,
+      "coverage": 0.6381927285563007,
+      "precision": 1.0,
+      "n_admitted": 1808
+    },
+    {
+      "threshold": 0.5592474440234391,
+      "coverage": 0.6332509707024356,
+      "precision": 1.0,
+      "n_admitted": 1794
+    },
+    {
+      "threshold": 0.5610463044152187,
+      "coverage": 0.6279562301447229,
+      "precision": 1.0,
+      "n_admitted": 1779
+    },
+    {
+      "threshold": 0.5630078109065492,
+      "coverage": 0.6230144722908577,
+      "precision": 1.0,
+      "n_admitted": 1765
+    },
+    {
+      "threshold": 0.5654677604910117,
+      "coverage": 0.6180727144369926,
+      "precision": 1.0,
+      "n_admitted": 1751
+    },
+    {
+      "threshold": 0.5682502200256041,
+      "coverage": 0.6131309565831274,
+      "precision": 1.0,
+      "n_admitted": 1737
+    },
+    {
+      "threshold": 0.5701938627952308,
+      "coverage": 0.6078362160254147,
+      "precision": 1.0,
+      "n_admitted": 1722
+    },
+    {
+      "threshold": 0.5715470311030671,
+      "coverage": 0.6028944581715496,
+      "precision": 1.0,
+      "n_admitted": 1708
+    },
+    {
+      "threshold": 0.573404726670615,
+      "coverage": 0.5979527003176844,
+      "precision": 1.0,
+      "n_admitted": 1694
+    },
+    {
+      "threshold": 0.5756448516294584,
+      "coverage": 0.5930109424638192,
+      "precision": 1.0,
+      "n_admitted": 1680
+    },
+    {
+      "threshold": 0.5774639578320873,
+      "coverage": 0.5880691846099542,
+      "precision": 1.0,
+      "n_admitted": 1666
+    },
+    {
+      "threshold": 0.5791009724439689,
+      "coverage": 0.5827744440522414,
+      "precision": 1.0,
+      "n_admitted": 1651
+    },
+    {
+      "threshold": 0.5805763353654487,
+      "coverage": 0.5778326861983762,
+      "precision": 1.0,
+      "n_admitted": 1637
+    },
+    {
+      "threshold": 0.5820093780905757,
+      "coverage": 0.5728909283445112,
+      "precision": 1.0,
+      "n_admitted": 1623
+    },
+    {
+      "threshold": 0.5835186839103699,
+      "coverage": 0.5683021531944935,
+      "precision": 1.0,
+      "n_admitted": 1610
+    },
+    {
+      "threshold": 0.584724642523569,
+      "coverage": 0.5626544299329332,
+      "precision": 1.0,
+      "n_admitted": 1594
+    },
+    {
+      "threshold": 0.5866011114575755,
+      "coverage": 0.5577126720790682,
+      "precision": 1.0,
+      "n_admitted": 1580
+    },
+    {
+      "threshold": 0.5878175646815468,
+      "coverage": 0.552770914225203,
+      "precision": 1.0,
+      "n_admitted": 1566
+    },
+    {
+      "threshold": 0.5893404346015585,
+      "coverage": 0.5478291563713378,
+      "precision": 1.0,
+      "n_admitted": 1552
+    },
+    {
+      "threshold": 0.5906062398723622,
+      "coverage": 0.5425344158136252,
+      "precision": 1.0,
+      "n_admitted": 1537
+    },
+    {
+      "threshold": 0.5923890564309892,
+      "coverage": 0.53759265795976,
+      "precision": 1.0,
+      "n_admitted": 1523
+    },
+    {
+      "threshold": 0.59358722390841,
+      "coverage": 0.5326509001058948,
+      "precision": 1.0,
+      "n_admitted": 1509
+    },
+    {
+      "threshold": 0.5955872652518689,
+      "coverage": 0.5277091422520297,
+      "precision": 1.0,
+      "n_admitted": 1495
+    },
+    {
+      "threshold": 0.5973161545830157,
+      "coverage": 0.5227673843981645,
+      "precision": 1.0,
+      "n_admitted": 1481
+    },
+    {
+      "threshold": 0.5985027659478499,
+      "coverage": 0.5174726438404518,
+      "precision": 1.0,
+      "n_admitted": 1466
+    },
+    {
+      "threshold": 0.6006001964885386,
+      "coverage": 0.5125308859865867,
+      "precision": 1.0,
+      "n_admitted": 1452
+    },
+    {
+      "threshold": 0.6020340757753382,
+      "coverage": 0.5075891281327215,
+      "precision": 1.0,
+      "n_admitted": 1438
+    },
+    {
+      "threshold": 0.6032987284899957,
+      "coverage": 0.5026473702788563,
+      "precision": 1.0,
+      "n_admitted": 1424
+    },
+    {
+      "threshold": 0.6057465989985059,
+      "coverage": 0.4973526297211437,
+      "precision": 1.0,
+      "n_admitted": 1409
+    },
+    {
+      "threshold": 0.6067263184480332,
+      "coverage": 0.4924108718672785,
+      "precision": 1.0,
+      "n_admitted": 1395
+    },
+    {
+      "threshold": 0.6087735052683845,
+      "coverage": 0.48746911401341336,
+      "precision": 1.0,
+      "n_admitted": 1381
+    },
+    {
+      "threshold": 0.6114072407310333,
+      "coverage": 0.48252735615954817,
+      "precision": 1.0,
+      "n_admitted": 1367
+    },
+    {
+      "threshold": 0.6126390839341896,
+      "coverage": 0.4772326156018355,
+      "precision": 1.0,
+      "n_admitted": 1352
+    },
+    {
+      "threshold": 0.6141589963855456,
+      "coverage": 0.47229085774797036,
+      "precision": 1.0,
+      "n_admitted": 1338
+    },
+    {
+      "threshold": 0.6154895778277412,
+      "coverage": 0.46734909989410517,
+      "precision": 1.0,
+      "n_admitted": 1324
+    },
+    {
+      "threshold": 0.6168979394375979,
+      "coverage": 0.46240734204024003,
+      "precision": 1.0,
+      "n_admitted": 1310
+    },
+    {
+      "threshold": 0.6193993609754285,
+      "coverage": 0.45746558418637484,
+      "precision": 1.0,
+      "n_admitted": 1296
+    },
+    {
+      "threshold": 0.6202518257064435,
+      "coverage": 0.4521708436286622,
+      "precision": 1.0,
+      "n_admitted": 1281
+    },
+    {
+      "threshold": 0.6219879766205448,
+      "coverage": 0.44722908577479703,
+      "precision": 1.0,
+      "n_admitted": 1267
+    },
+    {
+      "threshold": 0.6234008244533634,
+      "coverage": 0.4422873279209319,
+      "precision": 1.0,
+      "n_admitted": 1253
+    },
+    {
+      "threshold": 0.6257434439419501,
+      "coverage": 0.4373455700670667,
+      "precision": 1.0,
+      "n_admitted": 1239
+    },
+    {
+      "threshold": 0.6271036458973909,
+      "coverage": 0.43205082950935403,
+      "precision": 1.0,
+      "n_admitted": 1224
+    },
+    {
+      "threshold": 0.6286447770032452,
+      "coverage": 0.4271090716554889,
+      "precision": 1.0,
+      "n_admitted": 1210
+    },
+    {
+      "threshold": 0.6298267700564322,
+      "coverage": 0.4221673138016237,
+      "precision": 1.0,
+      "n_admitted": 1196
+    },
+    {
+      "threshold": 0.6314515800931346,
+      "coverage": 0.41722555594775856,
+      "precision": 1.0,
+      "n_admitted": 1182
+    },
+    {
+      "threshold": 0.6327148544129415,
+      "coverage": 0.4119308153900459,
+      "precision": 1.0,
+      "n_admitted": 1167
+    },
+    {
+      "threshold": 0.6338291764259338,
+      "coverage": 0.40698905753618075,
+      "precision": 1.0,
+      "n_admitted": 1153
+    },
+    {
+      "threshold": 0.6347360745746287,
+      "coverage": 0.40204729968231556,
+      "precision": 1.0,
+      "n_admitted": 1139
+    },
+    {
+      "threshold": 0.6365055423885134,
+      "coverage": 0.3971055418284504,
+      "precision": 1.0,
+      "n_admitted": 1125
+    },
+    {
+      "threshold": 0.6382718598423291,
+      "coverage": 0.39216378397458523,
+      "precision": 1.0,
+      "n_admitted": 1111
+    },
+    {
+      "threshold": 0.6398533810323207,
+      "coverage": 0.38686904341687256,
+      "precision": 1.0,
+      "n_admitted": 1096
+    },
+    {
+      "threshold": 0.6403446473068928,
+      "coverage": 0.3819272855630074,
+      "precision": 1.0,
+      "n_admitted": 1082
+    },
+    {
+      "threshold": 0.6417012049924189,
+      "coverage": 0.37698552770914223,
+      "precision": 1.0,
+      "n_admitted": 1068
+    },
+    {
+      "threshold": 0.6430557367190644,
+      "coverage": 0.3720437698552771,
+      "precision": 1.0,
+      "n_admitted": 1054
+    },
+    {
+      "threshold": 0.6440866583555787,
+      "coverage": 0.3667490292975644,
+      "precision": 1.0,
+      "n_admitted": 1039
+    },
+    {
+      "threshold": 0.6454797318233317,
+      "coverage": 0.3618072714436993,
+      "precision": 1.0,
+      "n_admitted": 1025
+    },
+    {
+      "threshold": 0.6469873896795302,
+      "coverage": 0.3568655135898341,
+      "precision": 1.0,
+      "n_admitted": 1011
+    },
+    {
+      "threshold": 0.6485370993614197,
+      "coverage": 0.35227673843981644,
+      "precision": 1.0,
+      "n_admitted": 998
+    },
+    {
+      "threshold": 0.6498385182577162,
+      "coverage": 0.3466290151782563,
+      "precision": 1.0,
+      "n_admitted": 982
+    },
+    {
+      "threshold": 0.6513865140814278,
+      "coverage": 0.3416872573243911,
+      "precision": 1.0,
+      "n_admitted": 968
+    },
+    {
+      "threshold": 0.6521266183661456,
+      "coverage": 0.33674549947052596,
+      "precision": 1.0,
+      "n_admitted": 954
+    },
+    {
+      "threshold": 0.6526583552959576,
+      "coverage": 0.33180374161666076,
+      "precision": 1.0,
+      "n_admitted": 940
+    },
+    {
+      "threshold": 0.6538541987912739,
+      "coverage": 0.3268619837627956,
+      "precision": 1.0,
+      "n_admitted": 926
+    },
+    {
+      "threshold": 0.6552742617813188,
+      "coverage": 0.32156724320508295,
+      "precision": 1.0,
+      "n_admitted": 911
+    },
+    {
+      "threshold": 0.6569480069318608,
+      "coverage": 0.3166254853512178,
+      "precision": 1.0,
+      "n_admitted": 897
+    },
+    {
+      "threshold": 0.6575189127993943,
+      "coverage": 0.3116837274973526,
+      "precision": 1.0,
+      "n_admitted": 883
+    },
+    {
+      "threshold": 0.6585471806813724,
+      "coverage": 0.3067419696434875,
+      "precision": 1.0,
+      "n_admitted": 869
+    },
+    {
+      "threshold": 0.6593294002901968,
+      "coverage": 0.3014472290857748,
+      "precision": 1.0,
+      "n_admitted": 854
+    },
+    {
+      "threshold": 0.6605095635706456,
+      "coverage": 0.2965054712319096,
+      "precision": 1.0,
+      "n_admitted": 840
+    },
+    {
+      "threshold": 0.6618772406673911,
+      "coverage": 0.2915637133780445,
+      "precision": 1.0,
+      "n_admitted": 826
+    },
+    {
+      "threshold": 0.6626943924918246,
+      "coverage": 0.2866219555241793,
+      "precision": 1.0,
+      "n_admitted": 812
+    },
+    {
+      "threshold": 0.6641048750086646,
+      "coverage": 0.2813272149664666,
+      "precision": 1.0,
+      "n_admitted": 797
+    },
+    {
+      "threshold": 0.6658579287816532,
+      "coverage": 0.2763854571126015,
+      "precision": 1.0,
+      "n_admitted": 783
+    },
+    {
+      "threshold": 0.6668311654023789,
+      "coverage": 0.27144369925873635,
+      "precision": 1.0,
+      "n_admitted": 769
+    },
+    {
+      "threshold": 0.6677451577018853,
+      "coverage": 0.26650194140487116,
+      "precision": 1.0,
+      "n_admitted": 755
+    },
+    {
+      "threshold": 0.6687288718606959,
+      "coverage": 0.261560183551006,
+      "precision": 1.0,
+      "n_admitted": 741
+    },
+    {
+      "threshold": 0.6695362640984693,
+      "coverage": 0.25626544299329335,
+      "precision": 1.0,
+      "n_admitted": 726
+    },
+    {
+      "threshold": 0.6709640804846683,
+      "coverage": 0.25132368513942815,
+      "precision": 1.0,
+      "n_admitted": 712
+    },
+    {
+      "threshold": 0.6725483707447147,
+      "coverage": 0.24638192728556302,
+      "precision": 1.0,
+      "n_admitted": 698
+    },
+    {
+      "threshold": 0.673922016692521,
+      "coverage": 0.24144016943169785,
+      "precision": 1.0,
+      "n_admitted": 684
+    },
+    {
+      "threshold": 0.6756030884220372,
+      "coverage": 0.23614542887398518,
+      "precision": 1.0,
+      "n_admitted": 669
+    },
+    {
+      "threshold": 0.6775777528633424,
+      "coverage": 0.23120367102012002,
+      "precision": 1.0,
+      "n_admitted": 655
+    },
+    {
+      "threshold": 0.6787788152095661,
+      "coverage": 0.22626191316625485,
+      "precision": 1.0,
+      "n_admitted": 641
+    },
+    {
+      "threshold": 0.6803143620491028,
+      "coverage": 0.2216731380162372,
+      "precision": 1.0,
+      "n_admitted": 628
+    },
+    {
+      "threshold": 0.6821752756684271,
+      "coverage": 0.21602541475467701,
+      "precision": 1.0,
+      "n_admitted": 612
+    },
+    {
+      "threshold": 0.6835765500164511,
+      "coverage": 0.21108365690081185,
+      "precision": 1.0,
+      "n_admitted": 598
+    },
+    {
+      "threshold": 0.6847034348315331,
+      "coverage": 0.20614189904694669,
+      "precision": 1.0,
+      "n_admitted": 584
+    },
+    {
+      "threshold": 0.686275191942052,
+      "coverage": 0.20120014119308155,
+      "precision": 1.0,
+      "n_admitted": 570
+    },
+    {
+      "threshold": 0.6880620424471908,
+      "coverage": 0.19625838333921639,
+      "precision": 1.0,
+      "n_admitted": 556
+    },
+    {
+      "threshold": 0.6895653605461121,
+      "coverage": 0.19131662548535122,
+      "precision": 1.0,
+      "n_admitted": 542
+    },
+    {
+      "threshold": 0.6912396322542699,
+      "coverage": 0.18602188492763855,
+      "precision": 1.0,
+      "n_admitted": 527
+    },
+    {
+      "threshold": 0.6923877060712882,
+      "coverage": 0.18108012707377338,
+      "precision": 1.0,
+      "n_admitted": 513
+    },
+    {
+      "threshold": 0.6939097262507108,
+      "coverage": 0.17613836921990822,
+      "precision": 1.0,
+      "n_admitted": 499
+    },
+    {
+      "threshold": 0.6961575009715018,
+      "coverage": 0.17084362866219555,
+      "precision": 1.0,
+      "n_admitted": 484
+    },
+    {
+      "threshold": 0.6977162774483762,
+      "coverage": 0.16590187080833038,
+      "precision": 1.0,
+      "n_admitted": 470
+    },
+    {
+      "threshold": 0.6992868011321255,
+      "coverage": 0.16096011295446522,
+      "precision": 1.0,
+      "n_admitted": 456
+    },
+    {
+      "threshold": 0.7008270333759749,
+      "coverage": 0.15601835510060008,
+      "precision": 1.0,
+      "n_admitted": 442
+    },
+    {
+      "threshold": 0.7034584721129145,
+      "coverage": 0.1507236145428874,
+      "precision": 1.0,
+      "n_admitted": 427
+    },
+    {
+      "threshold": 0.7049738207654138,
+      "coverage": 0.14578185668902224,
+      "precision": 1.0,
+      "n_admitted": 413
+    },
+    {
+      "threshold": 0.705789447729312,
+      "coverage": 0.14084009883515708,
+      "precision": 1.0,
+      "n_admitted": 399
+    },
+    {
+      "threshold": 0.7082757653303482,
+      "coverage": 0.13589834098129192,
+      "precision": 1.0,
+      "n_admitted": 385
+    },
+    {
+      "threshold": 0.711679570039912,
+      "coverage": 0.13095658312742675,
+      "precision": 1.0,
+      "n_admitted": 371
+    },
+    {
+      "threshold": 0.7139201230140189,
+      "coverage": 0.12566184256971408,
+      "precision": 1.0,
+      "n_admitted": 356
+    },
+    {
+      "threshold": 0.7159474390235978,
+      "coverage": 0.12072008471584893,
+      "precision": 1.0,
+      "n_admitted": 342
+    },
+    {
+      "threshold": 0.7176749017370406,
+      "coverage": 0.11577832686198376,
+      "precision": 1.0,
+      "n_admitted": 328
+    },
+    {
+      "threshold": 0.7190602257024103,
+      "coverage": 0.1108365690081186,
+      "precision": 1.0,
+      "n_admitted": 314
+    },
+    {
+      "threshold": 0.7200913537087752,
+      "coverage": 0.10554182845040593,
+      "precision": 1.0,
+      "n_admitted": 299
+    },
+    {
+      "threshold": 0.7222833801154515,
+      "coverage": 0.10060007059654077,
+      "precision": 1.0,
+      "n_admitted": 285
+    },
+    {
+      "threshold": 0.7253722680273967,
+      "coverage": 0.09565831274267561,
+      "precision": 1.0,
+      "n_admitted": 271
+    },
+    {
+      "threshold": 0.7278188505963464,
+      "coverage": 0.09071655488881045,
+      "precision": 1.0,
+      "n_admitted": 257
+    },
+    {
+      "threshold": 0.7297479099963777,
+      "coverage": 0.08542181433109777,
+      "precision": 1.0,
+      "n_admitted": 242
+    },
+    {
+      "threshold": 0.7323374203102073,
+      "coverage": 0.08048005647723261,
+      "precision": 1.0,
+      "n_admitted": 228
+    },
+    {
+      "threshold": 0.7343724998996485,
+      "coverage": 0.07553829862336746,
+      "precision": 1.0,
+      "n_admitted": 214
+    },
+    {
+      "threshold": 0.7372550131687567,
+      "coverage": 0.0705965407695023,
+      "precision": 1.0,
+      "n_admitted": 200
+    },
+    {
+      "threshold": 0.7404301762580872,
+      "coverage": 0.06600776561948464,
+      "precision": 1.0,
+      "n_admitted": 187
+    },
+    {
+      "threshold": 0.7451440661995854,
+      "coverage": 0.060360042357924464,
+      "precision": 1.0,
+      "n_admitted": 171
+    },
+    {
+      "threshold": 0.7477382451445613,
+      "coverage": 0.0554182845040593,
+      "precision": 1.0,
+      "n_admitted": 157
+    },
+    {
+      "threshold": 0.7522062901875481,
+      "coverage": 0.05047652665019414,
+      "precision": 1.0,
+      "n_admitted": 143
+    },
+    {
+      "threshold": 0.7556200099350819,
+      "coverage": 0.04553476879632898,
+      "precision": 1.0,
+      "n_admitted": 129
+    },
+    {
+      "threshold": 0.7585347474519932,
+      "coverage": 0.040240028238616304,
+      "precision": 1.0,
+      "n_admitted": 114
+    },
+    {
+      "threshold": 0.7621231561330095,
+      "coverage": 0.03529827038475115,
+      "precision": 1.0,
+      "n_admitted": 100
+    },
+    {
+      "threshold": 0.7671287167611434,
+      "coverage": 0.030356512530885987,
+      "precision": 1.0,
+      "n_admitted": 86
+    },
+    {
+      "threshold": 0.7720519675681339,
+      "coverage": 0.025414754677020826,
+      "precision": 1.0,
+      "n_admitted": 72
+    },
+    {
+      "threshold": 0.7763804682535143,
+      "coverage": 0.020120014119308152,
+      "precision": 1.0,
+      "n_admitted": 57
+    },
+    {
+      "threshold": 0.783655521558158,
+      "coverage": 0.015178256265442993,
+      "precision": 1.0,
+      "n_admitted": 43
+    },
+    {
+      "threshold": 0.7897293903120798,
+      "coverage": 0.010236498411577833,
+      "precision": 1.0,
+      "n_admitted": 29
+    },
+    {
+      "threshold": 0.7979273969803623,
+      "coverage": 0.005294740557712672,
+      "precision": 1.0,
+      "n_admitted": 15
+    },
+    {
+      "threshold": 0.8247368335723877,
+      "coverage": 0.00035298270384751147,
+      "precision": 1.0,
+      "n_admitted": 1
+    }
+  ],
+  "curve_height_only": [
+    {
+      "threshold": 52.0,
+      "coverage": 1.0,
+      "precision": 1.0,
+      "n_admitted": 2833
+    },
+    {
+      "threshold": 58.231155778894475,
+      "coverage": 0.9947052594422874,
+      "precision": 1.0,
+      "n_admitted": 2818
+    },
+    {
+      "threshold": 60.0,
+      "coverage": 0.9908224496999647,
+      "precision": 1.0,
+      "n_admitted": 2807
+    },
+    {
+      "threshold": 60.69346733668341,
+      "coverage": 0.984821743734557,
+      "precision": 1.0,
+      "n_admitted": 2790
+    },
+    {
+      "threshold": 62.0,
+      "coverage": 0.9809389339922344,
+      "precision": 1.0,
+      "n_admitted": 2779
+    },
+    {
+      "threshold": 63.0,
+      "coverage": 0.9752912107306742,
+      "precision": 1.0,
+      "n_admitted": 2763
+    },
+    {
+      "threshold": 63.0,
+      "coverage": 0.9752912107306742,
+      "precision": 1.0,
+      "n_admitted": 2763
+    },
+    {
+      "threshold": 65.0,
+      "coverage": 0.9650547123190963,
+      "precision": 1.0,
+      "n_admitted": 2734
+    },
+    {
+      "threshold": 66.0,
+      "coverage": 0.9601129544652311,
+      "precision": 1.0,
+      "n_admitted": 2720
+    },
+    {
+      "threshold": 66.0,
+      "coverage": 0.9601129544652311,
+      "precision": 1.0,
+      "n_admitted": 2720
+    },
+    {
+      "threshold": 67.0,
+      "coverage": 0.9498764560536533,
+      "precision": 1.0,
+      "n_admitted": 2691
+    },
+    {
+      "threshold": 67.5427135678392,
+      "coverage": 0.9445817154959407,
+      "precision": 1.0,
+      "n_admitted": 2676
+    },
+    {
+      "threshold": 68.0,
+      "coverage": 0.9445817154959407,
+      "precision": 1.0,
+      "n_admitted": 2676
+    },
+    {
+      "threshold": 69.0,
+      "coverage": 0.9389339922343806,
+      "precision": 1.0,
+      "n_admitted": 2660
+    },
+    {
+      "threshold": 70.0,
+      "coverage": 0.9311683727497353,
+      "precision": 1.0,
+      "n_admitted": 2638
+    },
+    {
+      "threshold": 70.0,
+      "coverage": 0.9311683727497353,
+      "precision": 1.0,
+      "n_admitted": 2638
+    },
+    {
+      "threshold": 71.0,
+      "coverage": 0.924108718672785,
+      "precision": 1.0,
+      "n_admitted": 2618
+    },
+    {
+      "threshold": 72.0,
+      "coverage": 0.9159901164842923,
+      "precision": 1.0,
+      "n_admitted": 2595
+    },
+    {
+      "threshold": 72.0,
+      "coverage": 0.9159901164842923,
+      "precision": 1.0,
+      "n_admitted": 2595
+    },
+    {
+      "threshold": 73.0,
+      "coverage": 0.907518531591952,
+      "precision": 1.0,
+      "n_admitted": 2571
+    },
+    {
+      "threshold": 73.0,
+      "coverage": 0.907518531591952,
+      "precision": 1.0,
+      "n_admitted": 2571
+    },
+    {
+      "threshold": 74.0,
+      "coverage": 0.8986939639957642,
+      "precision": 1.0,
+      "n_admitted": 2546
+    },
+    {
+      "threshold": 74.0,
+      "coverage": 0.8986939639957642,
+      "precision": 1.0,
+      "n_admitted": 2546
+    },
+    {
+      "threshold": 75.0,
+      "coverage": 0.8881044828803388,
+      "precision": 1.0,
+      "n_admitted": 2516
+    },
+    {
+      "threshold": 75.5477386934673,
+      "coverage": 0.8792799152841511,
+      "precision": 1.0,
+      "n_admitted": 2491
+    },
+    {
+      "threshold": 76.0,
+      "coverage": 0.8792799152841511,
+      "precision": 1.0,
+      "n_admitted": 2491
+    },
+    {
+      "threshold": 76.0,
+      "coverage": 0.8792799152841511,
+      "precision": 1.0,
+      "n_admitted": 2491
+    },
+    {
+      "threshold": 77.0,
+      "coverage": 0.8683374514648782,
+      "precision": 1.0,
+      "n_admitted": 2460
+    },
+    {
+      "threshold": 77.0,
+      "coverage": 0.8683374514648782,
+      "precision": 1.0,
+      "n_admitted": 2460
+    },
+    {
+      "threshold": 78.0,
+      "coverage": 0.8584539357571479,
+      "precision": 1.0,
+      "n_admitted": 2432
+    },
+    {
+      "threshold": 78.0,
+      "coverage": 0.8584539357571479,
+      "precision": 1.0,
+      "n_admitted": 2432
+    },
+    {
+      "threshold": 79.0,
+      "coverage": 0.8485704200494176,
+      "precision": 1.0,
+      "n_admitted": 2404
+    },
+    {
+      "threshold": 79.0,
+      "coverage": 0.8485704200494176,
+      "precision": 1.0,
+      "n_admitted": 2404
+    },
+    {
+      "threshold": 80.0,
+      "coverage": 0.8365690081186022,
+      "precision": 1.0,
+      "n_admitted": 2370
+    },
+    {
+      "threshold": 80.0,
+      "coverage": 0.8365690081186022,
+      "precision": 1.0,
+      "n_admitted": 2370
+    },
+    {
+      "threshold": 81.0,
+      "coverage": 0.8259795270031769,
+      "precision": 1.0,
+      "n_admitted": 2340
+    },
+    {
+      "threshold": 81.0,
+      "coverage": 0.8259795270031769,
+      "precision": 1.0,
+      "n_admitted": 2340
+    },
+    {
+      "threshold": 81.0,
+      "coverage": 0.8259795270031769,
+      "precision": 1.0,
+      "n_admitted": 2340
+    },
+    {
+      "threshold": 82.0,
+      "coverage": 0.8122132015531239,
+      "precision": 1.0,
+      "n_admitted": 2301
+    },
+    {
+      "threshold": 82.0,
+      "coverage": 0.8122132015531239,
+      "precision": 1.0,
+      "n_admitted": 2301
+    },
+    {
+      "threshold": 83.0,
+      "coverage": 0.801270737733851,
+      "precision": 1.0,
+      "n_admitted": 2270
+    },
+    {
+      "threshold": 83.0,
+      "coverage": 0.801270737733851,
+      "precision": 1.0,
+      "n_admitted": 2270
+    },
+    {
+      "threshold": 84.0,
+      "coverage": 0.7899752912107306,
+      "precision": 1.0,
+      "n_admitted": 2238
+    },
+    {
+      "threshold": 84.0,
+      "coverage": 0.7899752912107306,
+      "precision": 1.0,
+      "n_admitted": 2238
+    },
+    {
+      "threshold": 84.0,
+      "coverage": 0.7899752912107306,
+      "precision": 1.0,
+      "n_admitted": 2238
+    },
+    {
+      "threshold": 85.0,
+      "coverage": 0.7744440522414402,
+      "precision": 1.0,
+      "n_admitted": 2194
+    },
+    {
+      "threshold": 85.0,
+      "coverage": 0.7744440522414402,
+      "precision": 1.0,
+      "n_admitted": 2194
+    },
+    {
+      "threshold": 86.0,
+      "coverage": 0.7642075538298624,
+      "precision": 1.0,
+      "n_admitted": 2165
+    },
+    {
+      "threshold": 86.0,
+      "coverage": 0.7642075538298624,
+      "precision": 1.0,
+      "n_admitted": 2165
+    },
+    {
+      "threshold": 86.0,
+      "coverage": 0.7642075538298624,
+      "precision": 1.0,
+      "n_admitted": 2165
+    },
+    {
+      "threshold": 87.0,
+      "coverage": 0.7504412283798094,
+      "precision": 1.0,
+      "n_admitted": 2126
+    },
+    {
+      "threshold": 87.0,
+      "coverage": 0.7504412283798094,
+      "precision": 1.0,
+      "n_admitted": 2126
+    },
+    {
+      "threshold": 88.0,
+      "coverage": 0.7409106953759266,
+      "precision": 1.0,
+      "n_admitted": 2099
+    },
+    {
+      "threshold": 88.0,
+      "coverage": 0.7409106953759266,
+      "precision": 1.0,
+      "n_admitted": 2099
+    },
+    {
+      "threshold": 88.0,
+      "coverage": 0.7409106953759266,
+      "precision": 1.0,
+      "n_admitted": 2099
+    },
+    {
+      "threshold": 89.0,
+      "coverage": 0.7260854218143311,
+      "precision": 1.0,
+      "n_admitted": 2057
+    },
+    {
+      "threshold": 89.0,
+      "coverage": 0.7260854218143311,
+      "precision": 1.0,
+      "n_admitted": 2057
+    },
+    {
+      "threshold": 90.0,
+      "coverage": 0.7158489234027533,
+      "precision": 1.0,
+      "n_admitted": 2028
+    },
+    {
+      "threshold": 90.0,
+      "coverage": 0.7158489234027533,
+      "precision": 1.0,
+      "n_admitted": 2028
+    },
+    {
+      "threshold": 91.0,
+      "coverage": 0.7042004941757853,
+      "precision": 1.0,
+      "n_admitted": 1995
+    },
+    {
+      "threshold": 91.0,
+      "coverage": 0.7042004941757853,
+      "precision": 1.0,
+      "n_admitted": 1995
+    },
+    {
+      "threshold": 91.1005025125628,
+      "coverage": 0.6932580303565126,
+      "precision": 1.0,
+      "n_admitted": 1964
+    },
+    {
+      "threshold": 92.0,
+      "coverage": 0.6932580303565126,
+      "precision": 1.0,
+      "n_admitted": 1964
+    },
+    {
+      "threshold": 93.0,
+      "coverage": 0.6837274973526297,
+      "precision": 1.0,
+      "n_admitted": 1937
+    },
+    {
+      "threshold": 93.0,
+      "coverage": 0.6837274973526297,
+      "precision": 1.0,
+      "n_admitted": 1937
+    },
+    {
+      "threshold": 93.0,
+      "coverage": 0.6837274973526297,
+      "precision": 1.0,
+      "n_admitted": 1937
+    },
+    {
+      "threshold": 94.0,
+      "coverage": 0.6703141546064243,
+      "precision": 1.0,
+      "n_admitted": 1899
+    },
+    {
+      "threshold": 94.0,
+      "coverage": 0.6703141546064243,
+      "precision": 1.0,
+      "n_admitted": 1899
+    },
+    {
+      "threshold": 94.0,
+      "coverage": 0.6703141546064243,
+      "precision": 1.0,
+      "n_admitted": 1899
+    },
+    {
+      "threshold": 95.0,
+      "coverage": 0.6561948464525238,
+      "precision": 1.0,
+      "n_admitted": 1859
+    },
+    {
+      "threshold": 95.0,
+      "coverage": 0.6561948464525238,
+      "precision": 1.0,
+      "n_admitted": 1859
+    },
+    {
+      "threshold": 96.0,
+      "coverage": 0.645252382633251,
+      "precision": 1.0,
+      "n_admitted": 1828
+    },
+    {
+      "threshold": 96.0,
+      "coverage": 0.645252382633251,
+      "precision": 1.0,
+      "n_admitted": 1828
+    },
+    {
+      "threshold": 97.0,
+      "coverage": 0.6339569361101306,
+      "precision": 1.0,
+      "n_admitted": 1796
+    },
+    {
+      "threshold": 97.0,
+      "coverage": 0.6339569361101306,
+      "precision": 1.0,
+      "n_admitted": 1796
+    },
+    {
+      "threshold": 97.0,
+      "coverage": 0.6339569361101306,
+      "precision": 1.0,
+      "n_admitted": 1796
+    },
+    {
+      "threshold": 97.0,
+      "coverage": 0.6339569361101306,
+      "precision": 1.0,
+      "n_admitted": 1796
+    },
+    {
+      "threshold": 98.0,
+      "coverage": 0.6159548182139075,
+      "precision": 1.0,
+      "n_admitted": 1745
+    },
+    {
+      "threshold": 98.0,
+      "coverage": 0.6159548182139075,
+      "precision": 1.0,
+      "n_admitted": 1745
+    },
+    {
+      "threshold": 99.0,
+      "coverage": 0.6046593716907872,
+      "precision": 1.0,
+      "n_admitted": 1713
+    },
+    {
+      "threshold": 99.0,
+      "coverage": 0.6046593716907872,
+      "precision": 1.0,
+      "n_admitted": 1713
+    },
+    {
+      "threshold": 99.0,
+      "coverage": 0.6046593716907872,
+      "precision": 1.0,
+      "n_admitted": 1713
+    },
+    {
+      "threshold": 100.0,
+      "coverage": 0.5894811154253442,
+      "precision": 1.0,
+      "n_admitted": 1670
+    },
+    {
+      "threshold": 100.0,
+      "coverage": 0.5894811154253442,
+      "precision": 1.0,
+      "n_admitted": 1670
+    },
+    {
+      "threshold": 100.0,
+      "coverage": 0.5894811154253442,
+      "precision": 1.0,
+      "n_admitted": 1670
+    },
+    {
+      "threshold": 101.0,
+      "coverage": 0.5764207553829862,
+      "precision": 1.0,
+      "n_admitted": 1633
+    },
+    {
+      "threshold": 101.0,
+      "coverage": 0.5764207553829862,
+      "precision": 1.0,
+      "n_admitted": 1633
+    },
+    {
+      "threshold": 102.0,
+      "coverage": 0.5630074126367808,
+      "precision": 1.0,
+      "n_admitted": 1595
+    },
+    {
+      "threshold": 102.0,
+      "coverage": 0.5630074126367808,
+      "precision": 1.0,
+      "n_admitted": 1595
+    },
+    {
+      "threshold": 102.0,
+      "coverage": 0.5630074126367808,
+      "precision": 1.0,
+      "n_admitted": 1595
+    },
+    {
+      "threshold": 103.0,
+      "coverage": 0.5510060007059654,
+      "precision": 1.0,
+      "n_admitted": 1561
+    },
+    {
+      "threshold": 103.0,
+      "coverage": 0.5510060007059654,
+      "precision": 1.0,
+      "n_admitted": 1561
+    },
+    {
+      "threshold": 104.0,
+      "coverage": 0.5418284504059301,
+      "precision": 1.0,
+      "n_admitted": 1535
+    },
+    {
+      "threshold": 104.0,
+      "coverage": 0.5418284504059301,
+      "precision": 1.0,
+      "n_admitted": 1535
+    },
+    {
+      "threshold": 104.7286432160804,
+      "coverage": 0.5277091422520297,
+      "precision": 1.0,
+      "n_admitted": 1495
+    },
+    {
+      "threshold": 105.0,
+      "coverage": 0.5277091422520297,
+      "precision": 1.0,
+      "n_admitted": 1495
+    },
+    {
+      "threshold": 105.0,
+      "coverage": 0.5277091422520297,
+      "precision": 1.0,
+      "n_admitted": 1495
+    },
+    {
+      "threshold": 106.0,
+      "coverage": 0.5160607130250617,
+      "precision": 1.0,
+      "n_admitted": 1462
+    },
+    {
+      "threshold": 106.0,
+      "coverage": 0.5160607130250617,
+      "precision": 1.0,
+      "n_admitted": 1462
+    },
+    {
+      "threshold": 107.0,
+      "coverage": 0.5047652665019414,
+      "precision": 1.0,
+      "n_admitted": 1430
+    },
+    {
+      "threshold": 107.0,
+      "coverage": 0.5047652665019414,
+      "precision": 1.0,
+      "n_admitted": 1430
+    },
+    {
+      "threshold": 107.0,
+      "coverage": 0.5047652665019414,
+      "precision": 1.0,
+      "n_admitted": 1430
+    },
+    {
+      "threshold": 108.0,
+      "coverage": 0.4888810448288034,
+      "precision": 1.0,
+      "n_admitted": 1385
+    },
+    {
+      "threshold": 108.0,
+      "coverage": 0.4888810448288034,
+      "precision": 1.0,
+      "n_admitted": 1385
+    },
+    {
+      "threshold": 108.0,
+      "coverage": 0.4888810448288034,
+      "precision": 1.0,
+      "n_admitted": 1385
+    },
+    {
+      "threshold": 109.0,
+      "coverage": 0.4765266501941405,
+      "precision": 1.0,
+      "n_admitted": 1350
+    },
+    {
+      "threshold": 109.0,
+      "coverage": 0.4765266501941405,
+      "precision": 1.0,
+      "n_admitted": 1350
+    },
+    {
+      "threshold": 110.0,
+      "coverage": 0.4669961171902577,
+      "precision": 1.0,
+      "n_admitted": 1323
+    },
+    {
+      "threshold": 110.0,
+      "coverage": 0.4669961171902577,
+      "precision": 1.0,
+      "n_admitted": 1323
+    },
+    {
+      "threshold": 111.0,
+      "coverage": 0.45640663607483234,
+      "precision": 1.0,
+      "n_admitted": 1293
+    },
+    {
+      "threshold": 111.0,
+      "coverage": 0.45640663607483234,
+      "precision": 1.0,
+      "n_admitted": 1293
+    },
+    {
+      "threshold": 112.0,
+      "coverage": 0.4433462760324744,
+      "precision": 1.0,
+      "n_admitted": 1256
+    },
+    {
+      "threshold": 112.0,
+      "coverage": 0.4433462760324744,
+      "precision": 1.0,
+      "n_admitted": 1256
+    },
+    {
+      "threshold": 113.0,
+      "coverage": 0.4338157430285916,
+      "precision": 1.0,
+      "n_admitted": 1229
+    },
+    {
+      "threshold": 113.0,
+      "coverage": 0.4338157430285916,
+      "precision": 1.0,
+      "n_admitted": 1229
+    },
+    {
+      "threshold": 114.0,
+      "coverage": 0.42569714084009885,
+      "precision": 1.0,
+      "n_admitted": 1206
+    },
+    {
+      "threshold": 114.0,
+      "coverage": 0.42569714084009885,
+      "precision": 1.0,
+      "n_admitted": 1206
+    },
+    {
+      "threshold": 115.0,
+      "coverage": 0.4126367807977409,
+      "precision": 1.0,
+      "n_admitted": 1169
+    },
+    {
+      "threshold": 115.0,
+      "coverage": 0.4126367807977409,
+      "precision": 1.0,
+      "n_admitted": 1169
+    },
+    {
+      "threshold": 115.0,
+      "coverage": 0.4126367807977409,
+      "precision": 1.0,
+      "n_admitted": 1169
+    },
+    {
+      "threshold": 116.0,
+      "coverage": 0.400282386163078,
+      "precision": 1.0,
+      "n_admitted": 1134
+    },
+    {
+      "threshold": 116.0,
+      "coverage": 0.400282386163078,
+      "precision": 1.0,
+      "n_admitted": 1134
+    },
+    {
+      "threshold": 117.0,
+      "coverage": 0.3889869396399576,
+      "precision": 1.0,
+      "n_admitted": 1102
+    },
+    {
+      "threshold": 117.0,
+      "coverage": 0.3889869396399576,
+      "precision": 1.0,
+      "n_admitted": 1102
+    },
+    {
+      "threshold": 118.0,
+      "coverage": 0.3780444758206848,
+      "precision": 1.0,
+      "n_admitted": 1071
+    },
+    {
+      "threshold": 118.0,
+      "coverage": 0.3780444758206848,
+      "precision": 1.0,
+      "n_admitted": 1071
+    },
+    {
+      "threshold": 119.0,
+      "coverage": 0.369219908224497,
+      "precision": 1.0,
+      "n_admitted": 1046
+    },
+    {
+      "threshold": 119.0,
+      "coverage": 0.369219908224497,
+      "precision": 1.0,
+      "n_admitted": 1046
+    },
+    {
+      "threshold": 120.0,
+      "coverage": 0.35968937522061417,
+      "precision": 1.0,
+      "n_admitted": 1019
+    },
+    {
+      "threshold": 120.0,
+      "coverage": 0.35968937522061417,
+      "precision": 1.0,
+      "n_admitted": 1019
+    },
+    {
+      "threshold": 121.0,
+      "coverage": 0.34874691140134134,
+      "precision": 1.0,
+      "n_admitted": 988
+    },
+    {
+      "threshold": 121.0,
+      "coverage": 0.34874691140134134,
+      "precision": 1.0,
+      "n_admitted": 988
+    },
+    {
+      "threshold": 122.0,
+      "coverage": 0.338863395693611,
+      "precision": 1.0,
+      "n_admitted": 960
+    },
+    {
+      "threshold": 122.0,
+      "coverage": 0.338863395693611,
+      "precision": 1.0,
+      "n_admitted": 960
+    },
+    {
+      "threshold": 123.0,
+      "coverage": 0.3286268972820332,
+      "precision": 1.0,
+      "n_admitted": 931
+    },
+    {
+      "threshold": 123.0,
+      "coverage": 0.3286268972820332,
+      "precision": 1.0,
+      "n_admitted": 931
+    },
+    {
+      "threshold": 124.0,
+      "coverage": 0.3169784680550653,
+      "precision": 1.0,
+      "n_admitted": 898
+    },
+    {
+      "threshold": 124.0,
+      "coverage": 0.3169784680550653,
+      "precision": 1.0,
+      "n_admitted": 898
+    },
+    {
+      "threshold": 125.0,
+      "coverage": 0.30885986586657255,
+      "precision": 1.0,
+      "n_admitted": 875
+    },
+    {
+      "threshold": 126.0,
+      "coverage": 0.30285915990116485,
+      "precision": 1.0,
+      "n_admitted": 858
+    },
+    {
+      "threshold": 126.0,
+      "coverage": 0.30285915990116485,
+      "precision": 1.0,
+      "n_admitted": 858
+    },
+    {
+      "threshold": 127.0,
+      "coverage": 0.29368160960112955,
+      "precision": 1.0,
+      "n_admitted": 832
+    },
+    {
+      "threshold": 127.0,
+      "coverage": 0.29368160960112955,
+      "precision": 1.0,
+      "n_admitted": 832
+    },
+    {
+      "threshold": 127.05527638190961,
+      "coverage": 0.2813272149664666,
+      "precision": 1.0,
+      "n_admitted": 797
+    },
+    {
+      "threshold": 128.0,
+      "coverage": 0.2813272149664666,
+      "precision": 1.0,
+      "n_admitted": 797
+    },
+    {
+      "threshold": 129.0,
+      "coverage": 0.27214966466643137,
+      "precision": 1.0,
+      "n_admitted": 771
+    },
+    {
+      "threshold": 129.0,
+      "coverage": 0.27214966466643137,
+      "precision": 1.0,
+      "n_admitted": 771
+    },
+    {
+      "threshold": 130.0,
+      "coverage": 0.26297211436639606,
+      "precision": 1.0,
+      "n_admitted": 745
+    },
+    {
+      "threshold": 131.0,
+      "coverage": 0.25697140840098837,
+      "precision": 1.0,
+      "n_admitted": 728
+    },
+    {
+      "threshold": 132.0,
+      "coverage": 0.2523826332509707,
+      "precision": 1.0,
+      "n_admitted": 715
+    },
+    {
+      "threshold": 132.0,
+      "coverage": 0.2523826332509707,
+      "precision": 1.0,
+      "n_admitted": 715
+    },
+    {
+      "threshold": 133.0,
+      "coverage": 0.24391104835863042,
+      "precision": 1.0,
+      "n_admitted": 691
+    },
+    {
+      "threshold": 134.0,
+      "coverage": 0.2368513942816802,
+      "precision": 1.0,
+      "n_admitted": 671
+    },
+    {
+      "threshold": 134.0,
+      "coverage": 0.2368513942816802,
+      "precision": 1.0,
+      "n_admitted": 671
+    },
+    {
+      "threshold": 135.0,
+      "coverage": 0.2276738439816449,
+      "precision": 1.0,
+      "n_admitted": 645
+    },
+    {
+      "threshold": 135.0,
+      "coverage": 0.2276738439816449,
+      "precision": 1.0,
+      "n_admitted": 645
+    },
+    {
+      "threshold": 136.0,
+      "coverage": 0.22061418990469467,
+      "precision": 1.0,
+      "n_admitted": 625
+    },
+    {
+      "threshold": 137.0,
+      "coverage": 0.21461348393928698,
+      "precision": 1.0,
+      "n_admitted": 608
+    },
+    {
+      "threshold": 138.0,
+      "coverage": 0.20755382986233675,
+      "precision": 1.0,
+      "n_admitted": 588
+    },
+    {
+      "threshold": 139.0,
+      "coverage": 0.20155312389692906,
+      "precision": 1.0,
+      "n_admitted": 571
+    },
+    {
+      "threshold": 139.0,
+      "coverage": 0.20155312389692906,
+      "precision": 1.0,
+      "n_admitted": 571
+    },
+    {
+      "threshold": 140.0,
+      "coverage": 0.1944934698199788,
+      "precision": 1.0,
+      "n_admitted": 551
+    },
+    {
+      "threshold": 141.0,
+      "coverage": 0.18672785033533357,
+      "precision": 1.0,
+      "n_admitted": 529
+    },
+    {
+      "threshold": 142.0,
+      "coverage": 0.18284504059301093,
+      "precision": 1.0,
+      "n_admitted": 518
+    },
+    {
+      "threshold": 143.0,
+      "coverage": 0.1782562654429933,
+      "precision": 1.0,
+      "n_admitted": 505
+    },
+    {
+      "threshold": 144.0,
+      "coverage": 0.17402047299682316,
+      "precision": 1.0,
+      "n_admitted": 493
+    },
+    {
+      "threshold": 145.0,
+      "coverage": 0.16801976703141547,
+      "precision": 1.0,
+      "n_admitted": 476
+    },
+    {
+      "threshold": 147.0,
+      "coverage": 0.16131309565831276,
+      "precision": 1.0,
+      "n_admitted": 457
+    },
+    {
+      "threshold": 148.0,
+      "coverage": 0.15778326861983763,
+      "precision": 1.0,
+      "n_admitted": 447
+    },
+    {
+      "threshold": 149.0,
+      "coverage": 0.15354747617366749,
+      "precision": 1.0,
+      "n_admitted": 435
+    },
+    {
+      "threshold": 151.0,
+      "coverage": 0.14684080480056477,
+      "precision": 1.0,
+      "n_admitted": 416
+    },
+    {
+      "threshold": 152.0,
+      "coverage": 0.14260501235439463,
+      "precision": 1.0,
+      "n_admitted": 404
+    },
+    {
+      "threshold": 153.0,
+      "coverage": 0.13978115072361455,
+      "precision": 1.0,
+      "n_admitted": 396
+    },
+    {
+      "threshold": 155.0,
+      "coverage": 0.13130956583127426,
+      "precision": 1.0,
+      "n_admitted": 372
+    },
+    {
+      "threshold": 157.0,
+      "coverage": 0.12742675608895165,
+      "precision": 1.0,
+      "n_admitted": 361
+    },
+    {
+      "threshold": 159.0,
+      "coverage": 0.12107306741969644,
+      "precision": 1.0,
+      "n_admitted": 343
+    },
+    {
+      "threshold": 160.0,
+      "coverage": 0.11789622308506884,
+      "precision": 1.0,
+      "n_admitted": 334
+    },
+    {
+      "threshold": 162.0,
+      "coverage": 0.11260148252735616,
+      "precision": 1.0,
+      "n_admitted": 319
+    },
+    {
+      "threshold": 164.0,
+      "coverage": 0.10695375926579598,
+      "precision": 1.0,
+      "n_admitted": 303
+    },
+    {
+      "threshold": 166.0,
+      "coverage": 0.10201200141193081,
+      "precision": 1.0,
+      "n_admitted": 289
+    },
+    {
+      "threshold": 168.0,
+      "coverage": 0.09636427815037063,
+      "precision": 1.0,
+      "n_admitted": 273
+    },
+    {
+      "threshold": 170.0,
+      "coverage": 0.0921284857042005,
+      "precision": 1.0,
+      "n_admitted": 261
+    },
+    {
+      "threshold": 172.0,
+      "coverage": 0.08648076244264032,
+      "precision": 1.0,
+      "n_admitted": 245
+    },
+    {
+      "threshold": 174.0,
+      "coverage": 0.08083303918108013,
+      "precision": 1.0,
+      "n_admitted": 229
+    },
+    {
+      "threshold": 177.0,
+      "coverage": 0.07589128132721497,
+      "precision": 1.0,
+      "n_admitted": 215
+    },
+    {
+      "threshold": 179.0,
+      "coverage": 0.07165548888104482,
+      "precision": 1.0,
+      "n_admitted": 203
+    },
+    {
+      "threshold": 181.0,
+      "coverage": 0.06600776561948464,
+      "precision": 1.0,
+      "n_admitted": 187
+    },
+    {
+      "threshold": 183.0,
+      "coverage": 0.06106600776561948,
+      "precision": 1.0,
+      "n_admitted": 173
+    },
+    {
+      "threshold": 185.4572864321608,
+      "coverage": 0.0554182845040593,
+      "precision": 1.0,
+      "n_admitted": 157
+    },
+    {
+      "threshold": 188.0,
+      "coverage": 0.05118249205788916,
+      "precision": 1.0,
+      "n_admitted": 145
+    },
+    {
+      "threshold": 191.91959798995003,
+      "coverage": 0.04553476879632898,
+      "precision": 1.0,
+      "n_admitted": 129
+    },
+    {
+      "threshold": 196.0,
+      "coverage": 0.04165195905400635,
+      "precision": 1.0,
+      "n_admitted": 118
+    },
+    {
+      "threshold": 200.0,
+      "coverage": 0.03600423579244617,
+      "precision": 1.0,
+      "n_admitted": 102
+    },
+    {
+      "threshold": 203.0,
+      "coverage": 0.03141546064242852,
+      "precision": 1.0,
+      "n_admitted": 89
+    },
+    {
+      "threshold": 209.0,
+      "coverage": 0.026826685492410872,
+      "precision": 1.0,
+      "n_admitted": 76
+    },
+    {
+      "threshold": 216.07537688442198,
+      "coverage": 0.020120014119308152,
+      "precision": 1.0,
+      "n_admitted": 57
+    },
+    {
+      "threshold": 224.0,
+      "coverage": 0.015531238969290505,
+      "precision": 1.0,
+      "n_admitted": 44
+    },
+    {
+      "threshold": 235.0,
+      "coverage": 0.010589481115425344,
+      "precision": 1.0,
+      "n_admitted": 30
+    },
+    {
+      "threshold": 251.0,
+      "coverage": 0.0056477232615601836,
+      "precision": 1.0,
+      "n_admitted": 16
+    },
+    {
+      "threshold": 308.0,
+      "coverage": 0.00035298270384751147,
+      "precision": 1.0,
+      "n_admitted": 1
+    }
+  ]
+}

@@ -1229,7 +1229,11 @@ def camera_start(
             return {"status": "already_running", "camera_id": camera_id}
         active_streams.pop(camera_id, None)
 
-    if len(active_streams) >= MAX_STREAMS:
+    # Cap is configurable via PUT /settings (max_simultaneous_streams),
+    # defaulting to MAX_STREAMS when unset — read at request time so a
+    # settings update applies without a restart.
+    max_streams = int(_app_config.get("max_simultaneous_streams", MAX_STREAMS))
+    if len(active_streams) >= max_streams:
         # Finished video streams only hold their "VIDEO ENDED" frame — evict
         # them before refusing a new stream
         for cid, s in list(active_streams.items()):
@@ -1239,10 +1243,10 @@ def camera_start(
                 except Exception:
                     pass
                 active_streams.pop(cid, None)
-        if len(active_streams) >= MAX_STREAMS:
+        if len(active_streams) >= max_streams:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Max {MAX_STREAMS} simultaneous streams already active.",
+                detail=f"Max {max_streams} simultaneous streams already active.",
             )
 
     # Look up Camera record
@@ -1387,7 +1391,9 @@ def camera_status(
             "frame_persons":         frame_persons,
         })
 
-    active_count = len(active_streams)
+    # Count only streams that are actually live — a finished clip lingers in
+    # active_streams until the next start/stop, and len() would over-report.
+    active_count = sum(1 for c in cameras_list if c["is_active"])
     return {
         "total_cameras":  total,
         "active_cameras": active_count,
@@ -1515,7 +1521,11 @@ def search_by_photo(
     import base64 as _b64
     from datetime import datetime, timezone, timedelta
     from recognition.face_recognizer import FaceRecognizer
-    from database.queries import find_person_by_embedding, get_person_trail
+    from database.queries import (
+        find_person_by_embedding,
+        find_person_candidates,
+        get_person_trail,
+    )
 
     try:
         img_bytes = _b64.b64decode(payload.base64_image)
@@ -1544,6 +1554,9 @@ def search_by_photo(
     query_emb = embeddings[0]
     match = find_person_by_embedding(query_emb, db=db, threshold=0.65)
     cameras_searched = max(len(active_streams), 1)
+    # Read-only field ranking for the operator's "how close was the field"
+    # view — never used for identity assignment (the match above is).
+    candidates = find_person_candidates(query_emb, db=db, top_k=5, min_similarity=0.30)
 
     if not match:
         # Audit even a miss: an unsuccessful search still processed a face
@@ -1561,6 +1574,7 @@ def search_by_photo(
 
     unique_code = match["unique_code"]
     confidence  = match["similarity"]
+    matched_person = db.query(Person).filter(Person.unique_code == unique_code).first()
     _gov.audit(db, actor=token.username or "unknown", action="search.by_photo",
                subject_code=unique_code, outcome="matched", actor_role=token.role,
                actor_ip=_gov.client_ip(request),
@@ -1605,10 +1619,12 @@ def search_by_photo(
         "face_detected":    True,
         "unique_code":      unique_code,
         "confidence":       round(confidence, 4),
+        "photo_path":       matched_person.photo_path if matched_person else None,
         "cameras_searched": cameras_searched,
         "is_live_now":      len(live_matches) > 0,
         "live_matches":     live_matches,
         "history_matches":  history_matches[:10],
+        "candidates":       candidates,
         "timeline":         trail[-20:],
         "first_seen":       trail[0]["seen_at"] if trail else None,
         "last_seen":        trail[-1]["seen_at"] if trail else None,
@@ -1700,7 +1716,7 @@ def get_settings(
     return {
         "config": _app_config,
         "active_streams": len(active_streams),
-        "max_streams": MAX_STREAMS,
+        "max_streams": int(_app_config.get("max_simultaneous_streams", MAX_STREAMS)),
         "database_url_type": "postgresql" if not _is_sqlite() else "sqlite",
     }
 

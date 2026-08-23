@@ -145,12 +145,20 @@ class ChokePointAdapter(DatasetAdapter):
             yield SequenceMeta(seq_id=cam_dir.name, camera_id=cam_dir.name,
                                n_frames=n, note=cam_dir.parent.name)
 
-    def ground_truth_index(self) -> Iterator[tuple]:
+    def ground_truth_index(self, max_frames: int = 0) -> Iterator[tuple]:
         """Label-only pass — parses XML, decodes no JPEGs. ChokePoint has
-        ~64k frames, so the pixel-decoding fallback would take minutes."""
+        ~64k frames, so the pixel-decoding fallback would take minutes.
+
+        max_frames mirrors frames(): the same per-camera cap over the same
+        sorted-by-filename order, so the adequacy gate sees exactly the frames
+        the runner will score."""
         for cam_dir in self._cam_dirs:
             gt = self._load_gt(cam_dir.name)
+            n = 0
             for path in sorted(f for f in cam_dir.iterdir() if f.suffix.lower() == ".jpg"):
+                if max_frames and n >= max_frames:
+                    break
+                n += 1
                 stem = path.stem
                 people = gt.get(stem) or gt.get(stem.lstrip("0") or "0") or []
                 yield (cam_dir.name, cam_dir.name, f"{cam_dir.name}/{path.name}",

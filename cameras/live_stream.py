@@ -23,6 +23,7 @@ import json
 import logging
 import math
 import queue
+import sys
 import threading
 import time
 import warnings
@@ -90,6 +91,25 @@ _OBJECT_LABELS  = {
 # Movement-trail length (analysis cycles) drawn behind each tracked person
 _TRAIL_LENGTH = 30
 
+
+class _BufferedFrameRecord:
+    """
+    One buffered frame held by the tracklet voter while a track is undecided.
+
+    The voter patches `.code` / `.method` on commit (mirroring the offline
+    harness's record objects, where this is how scoring records get
+    relabelled). In the live path those patches are inert — the on-screen
+    history is deliberately NOT rewritten — but `.when` is read by
+    _backfill_tracklet_sightings() so the retroactive sighting rows carry the
+    frame's actual processing time, not the commit time.
+    """
+    __slots__ = ("when", "code", "method")
+
+    def __init__(self, when: float):
+        self.when = when
+        self.code = None
+        self.method = None
+
 # Identity-arbitration parameters previously hardcoded here — min track age
 # for registration, face-quality gate, head-zoom pass, ID-switch contradiction
 # guard, evidence-gating similarity — now live in config/identity_config.py
@@ -97,6 +117,51 @@ _TRAIL_LENGTH = 30
 # set in LiveStream.__init__. Defaults are unchanged; override via the
 # SMARTDETECT_IDENTITY_CONFIG env var (config/ablation/*.json for ready-made
 # ablation configs).
+
+
+# ── Live-stream registry ────────────────────────────────────────────────────
+# camera_id -> running LiveStream instance. Lets governance.erase_person()
+# reach into every active stream's in-memory identity cache without
+# backend/main.py's `active_streams` dict — importing that here would be
+# circular (main.py imports governance, governance would import main).
+# Populated in start(), cleared in stop() — same lifetime as active_streams.
+_REGISTRY: Dict[str, "LiveStream"] = {}
+
+
+def purge_identity(unique_code: str) -> int:
+    """
+    Remove every in-memory reference to `unique_code` from every running
+    stream: the tracker_id -> code cache (`_track_codes`, `active_tracks`),
+    the sighting dedup cache (`_seen_cache`), and the recent-detections
+    buffer (`_detections`, surfaced verbatim by GET /camera/detections/recent
+    and GET /persons/live).
+
+    Called by governance.erase_person() so a deleted identity cannot keep
+    appearing as "live" or in recent activity purely because a stream
+    resolved it earlier this session and never re-queries the DB per frame.
+    Returns the number of cache entries removed, across all streams.
+
+    These dicts are otherwise written only by each stream's analysis worker
+    thread, but already read from other threads elsewhere in this class
+    (e.g. _on_video_finished reads _track_codes from the capture thread) —
+    this follows that same informal safety level rather than adding new
+    locking to the per-frame hot path for a rare, admin-triggered event.
+    """
+    removed = 0
+    for stream in list(_REGISTRY.values()):
+        stale_tids = [tid for tid, v in list(stream._track_codes.items())
+                      if v.get("code") == unique_code]
+        for tid in stale_tids:
+            stream._track_codes.pop(tid, None)
+            stream.active_tracks.pop(tid, None)
+            removed += 1
+        if stream._seen_cache.pop(unique_code, None) is not None:
+            removed += 1
+        kept = [d for d in stream._detections if d.get("unique_code") != unique_code]
+        if len(kept) != len(stream._detections):
+            removed += len(stream._detections) - len(kept)
+            stream._detections = deque(kept, maxlen=100)
+    return removed
 
 
 class LiveStream:
@@ -188,6 +253,21 @@ class LiveStream:
         # ── Identity-arbitration config (config/identity_config.py) ────────
         self._identity_config = get_identity_config()
 
+        # ── Tracklet voting (recognition/tracklet_vote.py) ─────────────────
+        # OFF by default (IdentityConfig.enable_tracklet_voting). When on,
+        # identity commits once per TRACK from up to `tracklet_buffer_size`
+        # quality-weighted gate-passing face embeddings instead of on the
+        # first gate-passing frame; until commit the track shows
+        # "Detecting..." (see the voting block in _analyze_frame).
+        self._voter = None
+        if self._identity_config.enable_tracklet_voting:
+            from recognition.tracklet_vote import TrackletVoter
+            self._voter = TrackletVoter(self._identity_config)
+
+        # Last analysed frame — used by track-end commits, which can fire
+        # after the frame loop has moved on (cleanup / camera stop).
+        self._last_frame = None
+
         # ── ML components (lazy-loaded to avoid startup crash) ─────────────
         self._detector   = None
         self._identifier = None
@@ -215,7 +295,13 @@ class LiveStream:
     def start(self) -> None:
         """Open the camera/video and start the capture + analysis threads."""
         if isinstance(self.source, int):
-            self._cap = cv2.VideoCapture(self.source, cv2.CAP_DSHOW)
+            # CAP_DSHOW is a Windows-only backend; on macOS it fails immediately
+            # without falling back to AVFoundation (or reaching the TCC camera
+            # check), so use the platform default everywhere else.
+            if sys.platform.startswith("win"):
+                self._cap = cv2.VideoCapture(self.source, cv2.CAP_DSHOW)
+            else:
+                self._cap = cv2.VideoCapture(self.source)
         else:
             self._cap = cv2.VideoCapture(self.source)
         if not self._cap.isOpened():
@@ -272,6 +358,7 @@ class LiveStream:
         self._worker = threading.Thread(target=self._analysis_loop, daemon=True,
                                         name=f"LiveStream-ML-{self.camera_id}")
         self._worker.start()
+        _REGISTRY[self.camera_id] = self
         logger.info("LiveStream %s started — source=%s", self.camera_id, self.source)
 
     def stop(self) -> None:
@@ -283,6 +370,14 @@ class LiveStream:
             self._worker.join(timeout=3)
         if self._cap:
             self._cap.release()
+        # Stopping the stream ends every open track: commit any pending
+        # voting decisions so the DB trail keeps the last seconds' evidence.
+        try:
+            self._commit_open_voting_tracks()
+        except Exception as exc:
+            logger.debug("voting commit at stop failed: %s", exc)
+        if _REGISTRY.get(self.camera_id) is self:
+            _REGISTRY.pop(self.camera_id, None)
         logger.info("LiveStream %s stopped", self.camera_id)
 
     def is_connected(self) -> bool:
@@ -375,6 +470,12 @@ class LiveStream:
     def _on_video_finished(self) -> None:
         """Uploaded video reached EOF: final frame, DB offline, stop threads."""
         self._finished = True
+        # A person still in frame at EOF is a track end: commit any open
+        # voting tracks so their buffered frames are not lost.
+        try:
+            self._commit_open_voting_tracks()
+        except Exception as exc:
+            logger.debug("voting commit at EOF failed: %s", exc)
         persons_found = len({c["code"] for c in self._track_codes.values()}) or self.persons_today
 
         # Final "VIDEO ENDED" frame stays visible in the MJPEG stream
@@ -442,7 +543,11 @@ class LiveStream:
         if not self._detector:
             return
 
-        detections = self._detector.detect(frame)
+        # Detection only — tiling changes which boxes exist, never how a box
+        # acquires an identity. Falls through to a plain detect() when
+        # enable_tiled_detection is off or the source is below the floor.
+        from cameras.tiled_detect import detect_with_tiling
+        detections = detect_with_tiling(self._detector, frame, self._identity_config)
         person_dets = [d for d in detections if d["label"] == "person"]
         bag_dets    = [d for d in detections if d["label"] in _BAG_CLASSES]
         bottle_dets = [d for d in detections if d["label"] in _BOTTLE_CLASSES]
@@ -628,6 +733,14 @@ class LiveStream:
                 self._track_codes[t]["code"]
                 for t in current_tids if t in self._track_codes
             }
+            # A face already matched to an earlier box this frame must not also
+            # be handed to a later, overlapping box — see
+            # recognition/face_assign.py's docstring for the failure this
+            # causes (two person boxes both identified from one stolen face).
+            # This loop is a separate implementation from face_assign.py (it
+            # also extracts the pose/embedding for identify() inline), so the
+            # same `taken`-set fix is applied here directly rather than shared.
+            claimed_faces: set = set()
 
             for tid, bbox in tracked:
                 x, y, w, h = bbox
@@ -638,7 +751,9 @@ class LiveStream:
                 # THIS person's face and InsightFace runs once per cycle ──────
                 face_bbox, face_kps, gender_str = None, None, ""
                 matched_face = None
-                for face_obj in all_faces:
+                for face_idx, face_obj in enumerate(all_faces):
+                    if face_idx in claimed_faces:
+                        continue
                     try:
                         fb = face_obj.bbox.astype(int)
                         fc_x = (fb[0] + fb[2]) / 2
@@ -646,6 +761,7 @@ class LiveStream:
                         head_bottom = y + (y2 - y) * 0.6
                         if x <= fc_x <= x2 and y <= fc_y <= head_bottom:
                             matched_face = face_obj
+                            claimed_faces.add(face_idx)
                             break
                     except Exception:
                         continue
@@ -660,8 +776,18 @@ class LiveStream:
                         fb_q = matched_face.bbox
                         face_h = float(fb_q[3] - fb_q[1])
                         det_sc = float(getattr(matched_face, "det_score", 1.0) or 1.0)
-                        if (face_h >= self._identity_config.face_quality_min_height_px
-                                and det_sc >= self._identity_config.face_quality_min_det_score):
+                        from recognition.face_pose import estimate_pose
+                        from recognition.face_quality import gate_passes
+                        _pose = estimate_pose(getattr(matched_face, "kps", None))
+                        _box = [int(fb_q[0]), int(fb_q[1]),
+                                int(fb_q[2] - fb_q[0]), int(face_h)]
+                        # With enable_learned_quality_gate off (default) this is
+                        # the identical two-constant test.
+                        if gate_passes(_box, det_sc, _pose, self._identity_config,
+                                       crop=frame[max(0, _box[1]):_box[1] + _box[3],
+                                                  max(0, _box[0]):_box[0] + _box[2]],
+                                       person_boxes=[b for _t, b in tracked],
+                                       owner_box=bbox):
                             face_emb = getattr(matched_face, "embedding", None)
                     except Exception:
                         face_emb = getattr(matched_face, "embedding", None)
@@ -687,7 +813,80 @@ class LiveStream:
                     if cached:
                         code, method, conf = cached["code"], cached["method"], cached["conf"]
                         label = cached.get("label", code)
-                    elif self._identifier:
+                    elif self._voter is not None:
+                        # ── Tracklet voting — the live port of the mean
+                        # strategy proven offline (recognition/tracklet_vote.py,
+                        # ablation config F). Identity commits ONCE per track
+                        # from up to `tracklet_buffer_size` quality-weighted
+                        # gate-passing face embeddings, at `tracklet_commit_k`
+                        # faces or track end (whichever first), instead of on
+                        # the first gate-passing frame — a single mediocre
+                        # first view can no longer mint a duplicate that lasts
+                        # the whole track.
+                        #
+                        # ONLINE DIVERGENCE FROM THE OFFLINE HARNESS
+                        # (inherent, not accidental — documented here): the
+                        # harness relabels its scoring records retroactively
+                        # on commit, but frames ALREADY SHOWN to an operator
+                        # cannot be rewritten — a live track legitimately
+                        # displays "Detecting..." until its decision lands.
+                        # Database correctness is still restored:
+                        # _backfill_tracklet_sightings() below writes the
+                        # buffered gate-passing frames' sighting rows under
+                        # the committed code (evidence gate re-tested per
+                        # frame), so the stored trail is right even though
+                        # the on-screen history is not.
+                        committed = self._voter.committed_code(tid)
+                        if committed:
+                            # The ID-switch guard just dropped this track's
+                            # committed cache — that decision was wrong, so
+                            # the track re-buffers from scratch.
+                            self._voter.reset(tid)
+                        # Buffer this frame's gate-passing face (if any) with
+                        # its quality weight; hold a frame record so the
+                        # commit can backfill the database trail.
+                        q = 0.0
+                        if face_emb is not None and matched_face is not None:
+                            try:
+                                from recognition.tracklet_vote import quality_score
+                                fb_q = matched_face.bbox
+                                q = quality_score(
+                                    [int(fb_q[0]), int(fb_q[1]),
+                                     int(fb_q[2] - fb_q[0]),
+                                     int(fb_q[3] - fb_q[1])],
+                                    float(getattr(matched_face, "det_score", 1.0) or 1.0),
+                                    face_pose, self._identity_config)
+                            except Exception:
+                                q = 0.0
+                        self._voter.observe(tid, face_emb, q,
+                                            _BufferedFrameRecord(when=now))
+                        if self._voter.ready(tid):
+                            # The k-th gate-passing face triggers the commit
+                            # on its own frame.
+                            c, m = self._voter.commit(
+                                tid, self._tracklet_resolve(
+                                    tid, frame, bbox, db, claimed_codes))
+                            if c and c != "Detecting...":
+                                code, method = c, m
+                                conf = 1.0
+                                fresh_face_id = face_emb is not None
+                                label = code
+                                try:
+                                    prow = db.query(Person).filter(Person.unique_code == code).first()
+                                    if prow is not None and getattr(prow, "display_name", None):
+                                        label = f"{prow.display_name} ({code})"
+                                except Exception:
+                                    pass
+                                self._track_codes[tid] = {"code": code, "method": method,
+                                                          "conf": conf, "label": label}
+                                self.active_tracks[tid] = code
+                                claimed_codes.add(code)
+                                # Retroactive DB correctness: the buffered
+                                # frames were displayed as "Detecting..." but
+                                # the stored trail must reflect the committed
+                                # code. On-screen history is NOT rewritten.
+                                self._backfill_tracklet_sightings(tid, code, db)
+                    elif self._identifier and self._track_has_face_evidence(tid, face_emb):
                         try:
                             result = self._identifier.identify(
                                 frame, bbox, db,
@@ -847,14 +1046,39 @@ class LiveStream:
             db.close()
 
         # ── Drop state for tracks that disappeared ──────────────────────────
-        for tid in list(self._track_age.keys()):
-            if tid not in seen_tids:
-                self._track_age.pop(tid, None)
-                self._track_trails.pop(tid, None)
-                self._face_bbox_history.pop(tid, None)
-                self._face_kps_history.pop(tid, None)
-                self.active_tracks.pop(tid, None)
-                # keep self._track_codes so a returning ByteTrack id keeps its code
+        # A disappeared track is a track END. Tracklet voting must decide it
+        # here (commit from whatever accumulated — a track that ended below
+        # k faces still gets its one decision) BEFORE the per-track state is
+        # dropped; the commit writes sighting rows under the earned code.
+        dead_tids = [t for t in self._track_age if t not in seen_tids]
+        if dead_tids and self._voter is not None:
+            db_dead = SessionLocal()
+            try:
+                for tid in dead_tids:
+                    try:
+                        c, m = self._voter.end_track(
+                            tid, self._tracklet_resolve(tid, None, None,
+                                                        db_dead, None))
+                        if c and c != "Detecting...":
+                            # keep the code so a returning ByteTrack id
+                            # re-uses it (same policy as the cached path)
+                            self._track_codes[tid] = {"code": c, "method": m,
+                                                      "conf": 1.0, "label": c}
+                            self._backfill_tracklet_sightings(tid, c, db_dead)
+                    except Exception as exc:
+                        logger.debug("track-end commit failed for %s: %s",
+                                     tid, exc)
+                    finally:
+                        self._voter.forget(tid)
+            finally:
+                db_dead.close()
+        for tid in dead_tids:
+            self._track_age.pop(tid, None)
+            self._track_trails.pop(tid, None)
+            self._face_bbox_history.pop(tid, None)
+            self._face_kps_history.pop(tid, None)
+            self.active_tracks.pop(tid, None)
+            # keep self._track_codes so a returning ByteTrack id keeps its code
 
         objects_out = [{"bbox": o["bbox"], "label": _OBJECT_LABELS.get(o["label"], o["label"]),
                         "is_bag": o["label"] in _BAG_CLASSES} for o in object_dets]
@@ -1131,6 +1355,137 @@ class LiveStream:
             else:
                 self._track_face_mismatch[tid] = 0
         return cached
+
+    def _track_has_face_evidence(self, tid: int, face_emb) -> bool:
+        """
+        May this track's box take an identity from identify() this frame?
+
+        True when a face is visible right now, or when the track has shown a
+        face at some earlier point (so a person who turns away keeps their
+        colour/Re-ID re-association). False for a track that NEVER produced a
+        face — a YOLO false positive such as a chair — which must stay
+        "Detecting..." instead of being stamped with a stranger's code by the
+        colour/Re-ID fallback.
+        """
+        return face_emb is not None or tid in self._face_bbox_history
+
+    def _tracklet_resolve(self, tid, frame, bbox, db, exclude_codes):
+        """
+        Production arbitration for ONE tracklet-mean embedding: match, else
+        enrol — the same identify() call the non-voting path makes, so a
+        tracklet commit can never mint an identity the live path would not.
+
+        The mean embedding has no single pose, so the registration pose gate
+        fails open (face_pose=None), exactly as in the offline harness; the
+        track-age gate on allow_new still applies, so a sub-3-cycle track
+        ending early cannot mint an identity from a glimpse.
+
+        Returns a closure (the TrackletVoter calls it with the embedding).
+        """
+        if self._identifier is None:
+            return lambda emb: ("Detecting...", "pending")
+        import numpy as _np
+        frame_for_crop = frame if frame is not None \
+            else _np.zeros((8, 8, 3), dtype=_np.uint8)
+        bbox_for_crop = bbox if bbox is not None else [0, 0, 8, 8]
+        exclude = exclude_codes or set()
+
+        def resolve(emb):
+            try:
+                result = self._identifier.identify(
+                    frame_for_crop, bbox_for_crop, db,
+                    location_id=self.location_id,
+                    zone_id=self.zone_id,
+                    allow_new=(self._track_age.get(tid, 0)
+                               >= self._identity_config.min_track_age_for_registration),
+                    face_embedding=emb,
+                    face_pose=None,          # mean embedding has no pose
+                    exclude_codes=exclude,
+                    extract_face_if_missing=False,
+                )
+                return result["unique_code"], result["method"]
+            except Exception as exc:
+                logger.debug("tracklet resolve failed for track %s: %s",
+                             tid, exc)
+                return "Detecting...", "pending"
+        return resolve
+
+    def _backfill_tracklet_sightings(self, tid, code: str, db) -> None:
+        """
+        Retroactive DATABASE correctness for tracklet voting.
+
+        Frames buffered before commit were displayed as "Detecting..." and
+        wrote no sighting row. On commit the stored trail must reflect the
+        code the track actually earned: write one sighting row per buffered
+        gate-passing frame whose embedding individually agrees with the
+        committed code at the evidence threshold — the same per-frame test
+        the live evidence gate applies. The write-rate limiter (30 s per
+        code, the production `_seen_cache` policy) is respected using each
+        frame's OWN processing time, so the backfill yields exactly the rows
+        production would have written had the code been known at the time.
+
+        On-screen history is deliberately NOT rewritten — the operator saw
+        "Detecting...", and `_detections` keeps only what was displayed.
+        Backfilled rows carry no photo: those frames' crops were never
+        retained, and photo evidence is written only for face-confirmed
+        frames from commit onward.
+        """
+        if self._voter is None or not self._identity_config.enable_evidence_gating:
+            return
+        try:
+            for o in self._voter.buffered(tid):
+                if o.emb is None:
+                    continue
+                sim = self._face_sim_to_code(o.emb, code, db)
+                if sim is None or sim < self._identity_config.evidence_face_sim_threshold:
+                    continue
+                when = getattr(o.record, "when", None) or time.time()
+                if when - self._seen_cache.get(code, 0.0) <= 30:
+                    continue
+                self._seen_cache[code] = when
+                try:
+                    log_sighting(unique_code=code,
+                                 location_id=self.location_id,
+                                 zone_id=self.zone_id,
+                                 camera_id=self.camera_id,
+                                 confidence=1.0, db=db, frame_path=None)
+                except Exception as exc:
+                    logger.debug("tracklet backfill sighting failed: %s", exc)
+        except Exception as exc:
+            logger.debug("tracklet backfill failed for track %s: %s", tid, exc)
+
+    def _commit_open_voting_tracks(self) -> int:
+        """
+        Commit every still-open voting track (camera stopped / video EOF).
+
+        The offline harness flushes its voter at sequence end; the live
+        equivalent is the stream ending. Without this, a person still in
+        frame when the camera stops would lose their earned code and the
+        buffered frames' sighting rows entirely. Returns how many tracks
+        committed.
+        """
+        if self._voter is None:
+            return 0
+        n = 0
+        db = SessionLocal()
+        try:
+            for tid in self._voter.track_ids():
+                try:
+                    c, m = self._voter.end_track(
+                        tid, self._tracklet_resolve(tid, None, None, db, None))
+                    if c and c != "Detecting...":
+                        self._track_codes[tid] = {"code": c, "method": m,
+                                                  "conf": 1.0, "label": c}
+                        self._backfill_tracklet_sightings(tid, c, db)
+                        n += 1
+                except Exception as exc:
+                    logger.debug("voting commit at stream end failed for %s: %s",
+                                 tid, exc)
+                finally:
+                    self._voter.forget(tid)
+        finally:
+            db.close()
+        return n
 
     def _evidence_gate_ok(self, tid, code: str, face_emb, fresh_face_id: bool, db) -> bool:
         """

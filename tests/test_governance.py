@@ -18,6 +18,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from conftest import add_person, make_embedding
@@ -352,6 +353,92 @@ class TestAuditLog:
 # ═══════════════════════════════════════════════════════════════════════════
 # 6. Retention status reporting
 # ═══════════════════════════════════════════════════════════════════════════
+
+class TestErasureEndToEnd:
+    """
+    Full-stack proof for the CONSENT_FORM.md promise: register a person
+    through the REAL identification pipeline (not the add_person() bypass
+    used elsewhere in this file), populate a live camera's in-memory
+    identity cache exactly as a running LiveStream worker thread would, then
+    delete and verify every item traced in the deletion audit is gone —
+    including the in-memory cache, which erase_person() did not touch before
+    this fix (see cameras.live_stream.purge_identity).
+    """
+
+    def test_full_deletion_removes_every_trace(self, db, snapshots):
+        import time as _time
+
+        import cameras.live_stream as live_stream_mod
+        from cameras.live_stream import LiveStream
+        from database.queries import find_person_by_embedding, log_sighting
+        from recognition.smart_identifier import SmartIdentifier
+
+        # ── Register a person from a real frame through the real pipeline ──
+        frame = np.full((240, 120, 3), 128, dtype=np.uint8)
+        bbox = [0, 0, 120, 240]
+        face_emb = make_embedding(777)
+
+        identifier = SmartIdentifier()
+        result = identifier.identify(
+            frame, bbox, db, allow_new=True, face_embedding=face_emb,
+            face_pose=None, extract_face_if_missing=False,
+        )
+        assert result["method"] == "new_registration"
+        code = result["unique_code"]
+
+        person = db.query(Person).filter(Person.unique_code == code).first()
+        assert person is not None
+        assert person.photo_path, "registration must write a snapshot"
+        assert Path(person.photo_path).is_file(), "registration snapshot missing on disk"
+
+        # A per-sighting snapshot too — registration alone is not the whole
+        # picture the promise covers.
+        sighting_photo = snapshots / code / "sighting_0.jpg"
+        sighting_photo.write_bytes(b"\xff\xd8fake-jpeg")
+        assert log_sighting(code, "LOC-1", "z", "CAM-TEST", 0.9, db,
+                            frame_path=str(sighting_photo))
+
+        # ── Confirm searchable before deletion ──────────────────────────────
+        match = find_person_by_embedding(face_emb, db=db, threshold=0.56)
+        assert match is not None and match["unique_code"] == code
+
+        # ── Populate a running LiveStream's in-memory caches, as the worker
+        # thread does after resolving this person on camera (constructed but
+        # never start()ed: no capture thread, no cv2.VideoCapture) ──────────
+        stream = LiveStream(source=0, location_id="LOC-1", zone_id="z",
+                            camera_id="CAM-TEST")
+        stream._track_codes[42] = {"code": code, "method": "face", "conf": 0.9}
+        stream.active_tracks[42] = code
+        stream._seen_cache[code] = _time.time()
+        stream._detections.append({"unique_code": code, "method": "face",
+                                   "confidence": 0.9, "color_hex": None})
+        live_stream_mod._REGISTRY["CAM-TEST"] = stream
+        try:
+            # ── Delete ────────────────────────────────────────────────────
+            res = gov.erase_person(db, code, actor="admin")
+            assert res["verified"] is True
+            assert res["live_cache_entries_removed"] >= 2  # track + seen_cache
+
+            # ── Part A checklist, verified one item at a time ───────────────
+            assert db.query(Person).filter(Person.unique_code == code).first() is None, \
+                "person row"
+            assert db.query(Sighting).filter(Sighting.unique_code == code).count() == 0, \
+                "sighting rows"
+            assert not (snapshots / code).exists(), \
+                "snapshot files (registration + per-sighting)"
+            assert all(v.get("code") != code for v in stream._track_codes.values()), \
+                "LiveStream track cache"
+            assert 42 not in stream.active_tracks
+            assert code not in stream._seen_cache
+            assert all(d.get("unique_code") != code for d in stream._detections)
+
+            # ── The promise in eval/data/CONSENT_FORM.md: a photo search for
+            # this person, after deletion, returns nothing ──────────────────
+            assert find_person_by_embedding(face_emb, db=db, threshold=0.56) is None, \
+                "deleted person is still searchable by face"
+        finally:
+            live_stream_mod._REGISTRY.pop("CAM-TEST", None)
+
 
 class TestRetentionStatus:
 

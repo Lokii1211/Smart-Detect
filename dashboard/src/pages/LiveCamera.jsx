@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { getToken as sdGetToken, getStreamToken, withStreamToken, mediaUrl } from '../auth'
+import { getToken as sdGetToken, getStreamToken, withStreamToken, mediaUrl, streamMediaUrl } from '../auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -214,18 +214,21 @@ function CameraCard({ cam, token, onDeleted }) {
 
   const finished = fileState?.finished === true
 
-  // Auto-retry stream every 3 seconds on error
+  // Auto-retry stream every 3 seconds on error. The stream token is
+  // short-lived (60 min) and minted once per session, so force a fresh one
+  // before retrying — otherwise an expired token 401s forever. The URL must
+  // be built by streamMediaUrl: hand-appending '?t=' after '?token=' would
+  // corrupt the token and keep the loop failing.
   useEffect(() => {
     if (imgErr && active) {
-      retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = setTimeout(async () => {
+        try { await getStreamToken(true) } catch { /* keep old token */ }
         setImgErr(false)
-        if (imgRef.current) {
-          imgRef.current.src = streamUrl + '?t=' + Date.now()
-        }
+        if (imgRef.current) imgRef.current.src = streamMediaUrl(cam.id, true)
       }, 3000)
     }
     return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current) }
-  }, [imgErr, active, streamUrl])
+  }, [imgErr, active, cam.id])
 
   const start = async () => {
     setLoading(true)
@@ -234,7 +237,7 @@ function CameraCard({ cam, token, onDeleted }) {
         { headers: { Authorization: `Bearer ${token}` } })
       setActive(true); setImgErr(false); setFileState(null)
       // Restart the MJPEG stream (a replayed video needs a fresh connection)
-      if (imgRef.current) imgRef.current.src = streamUrl + '?t=' + Date.now()
+      if (imgRef.current) imgRef.current.src = streamMediaUrl(cam.id, true)
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot start camera.')
     } finally { setLoading(false) }
@@ -266,7 +269,7 @@ function CameraCard({ cam, token, onDeleted }) {
               color: '#555', fontSize: 12,
             }}>
               <span>📡 Reconnecting in 3s…</span>
-              <button onClick={() => { setImgErr(false); if (imgRef.current) imgRef.current.src = streamUrl + '?t=' + Date.now() }}
+              <button onClick={() => { setImgErr(false); if (imgRef.current) imgRef.current.src = streamMediaUrl(cam.id, true) }}
                 style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid #555', background: 'transparent', color: '#aaa', cursor: 'pointer' }}>
                 Retry Now
               </button>
@@ -454,7 +457,7 @@ function WallTile({ cam, token, onChanged }) {
       await axios.post(`${API}/camera/start`, { camera_id: cam.id },
         { headers: { Authorization: `Bearer ${token}` } })
       setImgErr(false)
-      if (imgRef.current) imgRef.current.src = streamUrl + '?t=' + Date.now()
+      if (imgRef.current) imgRef.current.src = streamMediaUrl(cam.id, true)
       onChanged()
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot start camera.')
@@ -486,7 +489,7 @@ function WallTile({ cam, token, onChanged }) {
           alignItems: 'center', justifyContent: 'center', gap: 8, color: '#475569',
         }}>
           <span style={{ fontSize: 22 }}>{cam.is_active ? '📡' : '🎥'}</span>
-          <button onClick={cam.is_active ? () => { setImgErr(false); if (imgRef.current) imgRef.current.src = streamUrl + '?t=' + Date.now() } : start}
+          <button onClick={cam.is_active ? () => { setImgErr(false); if (imgRef.current) imgRef.current.src = streamMediaUrl(cam.id, true) } : start}
             disabled={busy}
             style={{
               fontSize: 11, fontWeight: 600, padding: '5px 14px', borderRadius: 7,
@@ -597,7 +600,10 @@ export default function LiveCamera() {
       setGroups(camsRes.data || [])
       setLocations(locsRes.data || [])
       setStats({
-        active:  statusRes.data.active_cameras || 0,
+        // Count from per-camera is_active — the top-level active_cameras
+        // field can over-count clips that finished but still linger in the
+        // stream registry.
+        active:  (statusRes.data.cameras || []).filter(c => c.is_active).length,
         total:   statusRes.data.total_cameras  || 0,
         persons: analyticsRes.data.total       || 0,
       })
@@ -683,10 +689,23 @@ export default function LiveCamera() {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 70 }}>
       {view === 'wall' ? (
         (() => {
-          // Wall: every camera in the selected location(s), active streams first
+          // Wall: every camera in the selected location(s); live streams in
+          // the monitor grid, idle cameras kept below in a compact strip so
+          // each one still has its per-camera ▶ Start control.
           const wallCams = visibleGroups
             .flatMap(g => g.cameras || [])
             .sort((a, b) => (b.is_active === true) - (a.is_active === true))
+          const liveCams = wallCams.filter(c => c.is_active)
+          const idleCams = wallCams.filter(c => !c.is_active)
+          const liveCount = liveCams.length
+          // Grid auto-sizes to the LIVE camera count:
+          //   1      → full-width single view
+          //   2      → side by side (1×2)
+          //   3–4    → 2×2
+          //   >4     → scrollable auto-fill grid (never squeezed)
+          const gridCols = liveCount <= 1 ? '1fr'
+            : liveCount <= 4 ? 'repeat(2, 1fr)'
+            : 'repeat(auto-fill, minmax(300px, 1fr))'
           return wallCams.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: 40, color: '#94a3b8', fontSize: 13,
@@ -697,7 +716,7 @@ export default function LiveCamera() {
           ) : (
             <div>
               {/* CCTV control bar */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={() => startAll(wallCams)} disabled={bulkBusy} style={{
                   fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 7,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -714,20 +733,51 @@ export default function LiveCamera() {
                   background: '#fff', color: '#334155', marginLeft: 'auto',
                 }}>⛶ Fullscreen Monitor</button>
                 <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                  max 4 live at once
+                  {liveCount} live · max 4 at once
                 </span>
               </div>
-              {/* Monitor grid — black background in fullscreen like a CCTV wall */}
-              <div ref={wallRef} style={{
-                display: 'grid', gap: 12,
-                gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-                background: '#000', padding: 12, borderRadius: 12,
-                alignContent: 'center',
-              }}>
-                {wallCams.map(cam => (
-                  <WallTile key={cam.id} cam={cam} token={token} onChanged={fetchData} />
-                ))}
-              </div>
+
+              {/* Live monitor grid — sized to the active camera count */}
+              {liveCount > 0 ? (
+                <div ref={wallRef} style={{
+                  display: 'grid', gap: 12,
+                  gridTemplateColumns: gridCols,
+                  background: '#000', padding: 12, borderRadius: 12,
+                  alignContent: 'center',
+                }}>
+                  {liveCams.map(cam => (
+                    <WallTile key={cam.id} cam={cam} token={token} onChanged={fetchData} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  textAlign: 'center', padding: 28, color: '#94a3b8', fontSize: 12,
+                  background: '#0f172a', borderRadius: 12, border: '1px dashed #334155',
+                }}>
+                  No cameras running — hit <strong style={{ color: '#e2e8f0' }}>▶ Start All</strong>{' '}
+                  or start individual cameras below.
+                </div>
+              )}
+
+              {/* Idle cameras — compact strip, keeps per-camera Start */}
+              {idleCams.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 600, color: '#94a3b8',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8,
+                  }}>
+                    Not running · {idleCams.length}
+                  </div>
+                  <div style={{
+                    display: 'grid', gap: 10,
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                  }}>
+                    {idleCams.map(cam => (
+                      <WallTile key={cam.id} cam={cam} token={token} onChanged={fetchData} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )
         })()

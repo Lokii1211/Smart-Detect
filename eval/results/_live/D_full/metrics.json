@@ -1,0 +1,870 @@
+{
+  "buckets": {
+    "n_total": 2908,
+    "n_correct": 2425,
+    "n_contaminated": 463,
+    "n_unassigned": 20,
+    "frac_correct": 0.8339064649243466,
+    "frac_contaminated": 0.1592159559834938,
+    "frac_unassigned": 0.0068775790921595595,
+    "ci_correct": {
+      "value": 0.8339064649243466,
+      "lo": 0.819941191993097,
+      "hi": 0.8469907229012381,
+      "half_width": 0.013524765454070558,
+      "n": 2908
+    },
+    "ci_contaminated": {
+      "value": 0.1592159559834938,
+      "lo": 0.14636870611997205,
+      "hi": 0.17296236735038206,
+      "half_width": 0.013296830615205013,
+      "n": 2908
+    },
+    "ci_unassigned": {
+      "value": 0.0068775790921595595,
+      "lo": 0.004456636078672834,
+      "hi": 0.010599629669548936,
+      "half_width": 0.0030714967954380513,
+      "n": 2908
+    },
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 20,
+    "sums_to_one": true
+  },
+  "identity_precision": {
+    "value": 0.8396814404432132,
+    "ci": {
+      "value": 0.8396814404432132,
+      "lo": 0.8258501837404093,
+      "hi": 0.8526102463829324,
+      "half_width": 0.01338003132126155,
+      "n": 2888
+    },
+    "n_correct": 2425,
+    "n_assigned": 2888
+  },
+  "identity_coverage": {
+    "value": 0.9931224209078404,
+    "ci": {
+      "value": 0.9931224209078404,
+      "lo": 0.9894003703304511,
+      "hi": 0.9955433639213273,
+      "half_width": 0.0030714967954380556,
+      "n": 2908
+    },
+    "n_assigned": 2888,
+    "n_total": 2908,
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 20
+  },
+  "evidence_precision": {
+    "value": 0.7857142857142857,
+    "ci": {
+      "value": 0.7857142857142857,
+      "lo": 0.6406015468367708,
+      "hi": 0.8829420012399697,
+      "half_width": 0.12117022720159938,
+      "n": 42
+    },
+    "n_written": 42,
+    "n_correct": 33,
+    "n_wrong": 9,
+    "evidence_yield": 0.014442916093535076,
+    "evidence_yield_ci": {
+      "value": 0.014442916093535076,
+      "lo": 0.010702962259711969,
+      "hi": 0.019464016287351588,
+      "half_width": 0.00438052701381981,
+      "n": 2908
+    }
+  },
+  "identity_purity": {
+    "value": 0.660377358490566,
+    "ci": {
+      "value": 0.660377358490566,
+      "lo": 0.5259478663754829,
+      "hi": 0.7731296089867581,
+      "half_width": 0.12359087130563759,
+      "n": 53
+    },
+    "n_codes": 53,
+    "impure_codes": [
+      {
+        "code": "SDT-0011",
+        "gt_ids": [
+          "0003",
+          "0021"
+        ]
+      },
+      {
+        "code": "SDT-0013",
+        "gt_ids": [
+          "0005",
+          "0013",
+          "0025"
+        ]
+      },
+      {
+        "code": "SDT-0014",
+        "gt_ids": [
+          "0004",
+          "0022"
+        ]
+      },
+      {
+        "code": "SDT-0016",
+        "gt_ids": [
+          "0013",
+          "0022"
+        ]
+      },
+      {
+        "code": "SDT-0018",
+        "gt_ids": [
+          "0015",
+          "0023"
+        ]
+      },
+      {
+        "code": "SDT-0019",
+        "gt_ids": [
+          "0015",
+          "0018"
+        ]
+      },
+      {
+        "code": "SDT-0020",
+        "gt_ids": [
+          "0016",
+          "0018"
+        ]
+      },
+      {
+        "code": "SDT-0022",
+        "gt_ids": [
+          "0012",
+          "0017"
+        ]
+      },
+      {
+        "code": "SDT-0023",
+        "gt_ids": [
+          "0010",
+          "0017"
+        ]
+      },
+      {
+        "code": "SDT-0024",
+        "gt_ids": [
+          "0006",
+          "0019"
+        ]
+      },
+      {
+        "code": "SDT-0025",
+        "gt_ids": [
+          "0009",
+          "0027"
+        ]
+      },
+      {
+        "code": "SDT-0026",
+        "gt_ids": [
+          "0021",
+          "0026"
+        ]
+      },
+      {
+        "code": "SDT-0027",
+        "gt_ids": [
+          "0021",
+          "0027"
+        ]
+      },
+      {
+        "code": "SDT-0028",
+        "gt_ids": [
+          "0007",
+          "0024"
+        ]
+      },
+      {
+        "code": "SDT-0029",
+        "gt_ids": [
+          "0020",
+          "0024"
+        ]
+      },
+      {
+        "code": "SDT-0031",
+        "gt_ids": [
+          "0011",
+          "0025"
+        ]
+      },
+      {
+        "code": "SDT-0033",
+        "gt_ids": [
+          "0014",
+          "0022"
+        ]
+      },
+      {
+        "code": "SDT-0038",
+        "gt_ids": [
+          "0018",
+          "0020"
+        ]
+      }
+    ]
+  },
+  "fragmentation": {
+    "value": 2.88,
+    "n_people": 25,
+    "per_person": {
+      "0001": 2,
+      "0003": 3,
+      "0004": 4,
+      "0005": 2,
+      "0006": 3,
+      "0007": 2,
+      "0009": 2,
+      "0010": 2,
+      "0011": 3,
+      "0012": 2,
+      "0013": 5,
+      "0014": 3,
+      "0015": 4,
+      "0016": 2,
+      "0017": 3,
+      "0018": 4,
+      "0019": 2,
+      "0020": 3,
+      "0021": 4,
+      "0022": 4,
+      "0023": 2,
+      "0024": 3,
+      "0025": 2,
+      "0026": 2,
+      "0027": 4
+    }
+  },
+  "duplicate_identities": {
+    "value": 1.12,
+    "n_people": 25,
+    "total_duplicates": 28,
+    "people_with_duplicates": 19,
+    "per_person": {
+      "0001": 1,
+      "0003": 1,
+      "0004": 2,
+      "0005": 0,
+      "0006": 2,
+      "0007": 1,
+      "0009": 1,
+      "0010": 1,
+      "0011": 1,
+      "0012": 1,
+      "0013": 2,
+      "0014": 1,
+      "0015": 2,
+      "0016": 1,
+      "0017": 0,
+      "0018": 2,
+      "0019": 0,
+      "0020": 1,
+      "0021": 2,
+      "0022": 3,
+      "0023": 0,
+      "0024": 0,
+      "0025": 1,
+      "0026": 0,
+      "0027": 2
+    },
+    "codes_owned": {
+      "0001": [
+        "SDT-0021",
+        "SDT-0040"
+      ],
+      "0003": [
+        "SDT-0001",
+        "SDT-0060"
+      ],
+      "0004": [
+        "SDT-0034",
+        "SDT-0035",
+        "SDT-0058"
+      ],
+      "0005": [
+        "SDT-0003"
+      ],
+      "0006": [
+        "SDT-0024",
+        "SDT-0046",
+        "SDT-0069"
+      ],
+      "0007": [
+        "SDT-0028",
+        "SDT-0051"
+      ],
+      "0009": [
+        "SDT-0025",
+        "SDT-0047"
+      ],
+      "0010": [
+        "SDT-0023",
+        "SDT-0043"
+      ],
+      "0011": [
+        "SDT-0030",
+        "SDT-0054"
+      ],
+      "0012": [
+        "SDT-0022",
+        "SDT-0041"
+      ],
+      "0013": [
+        "SDT-0004",
+        "SDT-0015",
+        "SDT-0070"
+      ],
+      "0014": [
+        "SDT-0032",
+        "SDT-0056"
+      ],
+      "0015": [
+        "SDT-0005",
+        "SDT-0006",
+        "SDT-0018"
+      ],
+      "0016": [
+        "SDT-0007",
+        "SDT-0020"
+      ],
+      "0017": [
+        "SDT-0008"
+      ],
+      "0018": [
+        "SDT-0019",
+        "SDT-0038",
+        "SDT-0039"
+      ],
+      "0019": [
+        "SDT-0009"
+      ],
+      "0020": [
+        "SDT-0029",
+        "SDT-0053"
+      ],
+      "0021": [
+        "SDT-0010",
+        "SDT-0011",
+        "SDT-0026"
+      ],
+      "0022": [
+        "SDT-0014",
+        "SDT-0016",
+        "SDT-0033",
+        "SDT-0067"
+      ],
+      "0023": [
+        "SDT-0036"
+      ],
+      "0024": [
+        "SDT-0012"
+      ],
+      "0025": [
+        "SDT-0013",
+        "SDT-0031"
+      ],
+      "0026": [
+        "SDT-0048"
+      ],
+      "0027": [
+        "SDT-0027",
+        "SDT-0050",
+        "SDT-0064"
+      ]
+    }
+  },
+  "id_switches": {
+    "value": 54,
+    "n_tracks": 29,
+    "per_track": {
+      "3": 2,
+      "4": 2,
+      "5": 3,
+      "6": 3,
+      "7": 2,
+      "8": 2,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 2,
+      "13": 2,
+      "15": 2,
+      "16": 3,
+      "17": 2,
+      "18": 2,
+      "19": 2,
+      "20": 2,
+      "21": 1,
+      "22": 2,
+      "23": 2,
+      "24": 2,
+      "25": 1,
+      "26": 3,
+      "27": 2,
+      "28": 3
+    }
+  },
+  "cross_camera_reassoc": {
+    "value": 0.32,
+    "ci": {
+      "value": 0.32,
+      "lo": 0.20758216260656845,
+      "hi": 0.45810297308144077,
+      "half_width": 0.12526040523743617,
+      "n": 50
+    },
+    "n_pairs": 50,
+    "detail": [
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0001",
+        "to_code": "SDT-0060",
+        "match": false
+      },
+      {
+        "person": "0003",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0060",
+        "to_code": "SDT-0011",
+        "match": false
+      },
+      {
+        "person": "0005",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0003",
+        "to_code": "SDT-0013",
+        "match": false
+      },
+      {
+        "person": "0005",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0013",
+        "match": true
+      },
+      {
+        "person": "0013",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0004",
+        "to_code": "SDT-0015",
+        "match": false
+      },
+      {
+        "person": "0013",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0015",
+        "to_code": "SDT-0070",
+        "match": false
+      },
+      {
+        "person": "0015",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0006",
+        "to_code": "SDT-0018",
+        "match": false
+      },
+      {
+        "person": "0015",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0019",
+        "match": false
+      },
+      {
+        "person": "0016",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0007",
+        "to_code": "SDT-0020",
+        "match": false
+      },
+      {
+        "person": "0016",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0020",
+        "to_code": "SDT-0020",
+        "match": true
+      },
+      {
+        "person": "0017",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0008",
+        "to_code": "SDT-0022",
+        "match": false
+      },
+      {
+        "person": "0017",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0022",
+        "to_code": "SDT-0023",
+        "match": false
+      },
+      {
+        "person": "0019",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0009",
+        "to_code": "SDT-0024",
+        "match": false
+      },
+      {
+        "person": "0019",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0024",
+        "to_code": "SDT-0024",
+        "match": true
+      },
+      {
+        "person": "0021",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0011",
+        "to_code": "SDT-0026",
+        "match": false
+      },
+      {
+        "person": "0021",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0026",
+        "to_code": "SDT-0027",
+        "match": false
+      },
+      {
+        "person": "0024",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0012",
+        "to_code": "SDT-0028",
+        "match": false
+      },
+      {
+        "person": "0024",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0028",
+        "to_code": "SDT-0029",
+        "match": false
+      },
+      {
+        "person": "0025",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0013",
+        "to_code": "SDT-0031",
+        "match": false
+      },
+      {
+        "person": "0025",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0031",
+        "to_code": "SDT-0031",
+        "match": true
+      },
+      {
+        "person": "0022",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0016",
+        "to_code": "SDT-0033",
+        "match": false
+      },
+      {
+        "person": "0022",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0033",
+        "to_code": "SDT-0033",
+        "match": true
+      },
+      {
+        "person": "0023",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0018",
+        "to_code": "SDT-0036",
+        "match": false
+      },
+      {
+        "person": "0023",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0036",
+        "to_code": "SDT-0036",
+        "match": true
+      },
+      {
+        "person": "0018",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0019",
+        "to_code": "SDT-0038",
+        "match": false
+      },
+      {
+        "person": "0018",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0038",
+        "to_code": "SDT-0039",
+        "match": false
+      },
+      {
+        "person": "0001",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0021",
+        "to_code": "SDT-0040",
+        "match": false
+      },
+      {
+        "person": "0001",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0040",
+        "to_code": "SDT-0040",
+        "match": true
+      },
+      {
+        "person": "0012",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0022",
+        "to_code": "SDT-0041",
+        "match": false
+      },
+      {
+        "person": "0012",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0041",
+        "to_code": "SDT-0041",
+        "match": true
+      },
+      {
+        "person": "0010",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0023",
+        "to_code": "SDT-0043",
+        "match": false
+      },
+      {
+        "person": "0010",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0043",
+        "to_code": "SDT-0043",
+        "match": true
+      },
+      {
+        "person": "0006",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0024",
+        "to_code": "SDT-0069",
+        "match": false
+      },
+      {
+        "person": "0006",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0069",
+        "to_code": "SDT-0046",
+        "match": false
+      },
+      {
+        "person": "0009",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0025",
+        "to_code": "SDT-0047",
+        "match": false
+      },
+      {
+        "person": "0009",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0047",
+        "to_code": "SDT-0047",
+        "match": true
+      },
+      {
+        "person": "0026",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0026",
+        "to_code": "SDT-0048",
+        "match": false
+      },
+      {
+        "person": "0026",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0048",
+        "to_code": "SDT-0048",
+        "match": true
+      },
+      {
+        "person": "0027",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0027",
+        "to_code": "SDT-0064",
+        "match": false
+      },
+      {
+        "person": "0027",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0064",
+        "to_code": "SDT-0050",
+        "match": false
+      },
+      {
+        "person": "0007",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0028",
+        "to_code": "SDT-0051",
+        "match": false
+      },
+      {
+        "person": "0007",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0051",
+        "to_code": "SDT-0051",
+        "match": true
+      },
+      {
+        "person": "0020",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0029",
+        "to_code": "SDT-0053",
+        "match": false
+      },
+      {
+        "person": "0020",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0053",
+        "to_code": "SDT-0053",
+        "match": true
+      },
+      {
+        "person": "0011",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0030",
+        "to_code": "SDT-0054",
+        "match": false
+      },
+      {
+        "person": "0011",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0054",
+        "to_code": "SDT-0054",
+        "match": true
+      },
+      {
+        "person": "0014",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0033",
+        "to_code": "SDT-0056",
+        "match": false
+      },
+      {
+        "person": "0014",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0056",
+        "to_code": "SDT-0056",
+        "match": true
+      },
+      {
+        "person": "0004",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2",
+        "from_code": "SDT-0034",
+        "to_code": "SDT-0058",
+        "match": false
+      },
+      {
+        "person": "0004",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3",
+        "from_code": "SDT-0058",
+        "to_code": "SDT-0058",
+        "match": true
+      }
+    ]
+  },
+  "runtime": {
+    "n_frames": 2292,
+    "mean_frame_latency_ms": 66.39825684302818,
+    "median_frame_latency_ms": 55.40962499799207,
+    "throughput_fps": 15.060636341163226,
+    "total_wall_seconds": 152.18480468422058,
+    "machine": "Apple M5 (CPU inference, ONNXRuntime CPUExecutionProvider)",
+    "driver": "LiveStream._analyze_frame (live path)"
+  },
+  "n_records": 2908,
+  "config_file": "D_full.json",
+  "config_flags": {
+    "enable_face_anchor": true,
+    "enable_colour_fallback": true,
+    "enable_reid_fallback": true,
+    "enable_id_switch_guard": true,
+    "enable_evidence_gating": true,
+    "enable_tracklet_voting": false
+  },
+  "dataset": {
+    "adapter": "chokepoint",
+    "root": "/Users/lokii/Downloads/Smart-Detect-main/eval/data/chokepoint"
+  },
+  "harness_notes": [
+    "DRIVER: LiveStream._analyze_frame() \u2014 the real production per-frame loop.",
+    "head-zoom second pass IS exercised (it runs inside _analyze_frame).",
+    "raw unconfirmed YOLO boxes appear as tid=None 'Detecting...' entries.",
+    "on-screen pre-commit frames are NOT retroactively relabelled (production divergence; DB trail is backfilled under the committed code).",
+    "evidence rows are limited by production's 30s wall-clock dedup, so n_written is smaller than the offline run's per-frame rows."
+  ],
+  "voter_stats": {
+    "committed": 0,
+    "tracks": 0,
+    "never_had_a_face": 0
+  }
+}

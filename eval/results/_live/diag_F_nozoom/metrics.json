@@ -1,0 +1,291 @@
+{
+  "buckets": {
+    "n_total": 1382,
+    "n_correct": 1362,
+    "n_contaminated": 0,
+    "n_unassigned": 20,
+    "frac_correct": 0.9855282199710564,
+    "frac_contaminated": 0.0,
+    "frac_unassigned": 0.01447178002894356,
+    "ci_correct": {
+      "value": 0.9855282199710564,
+      "lo": 0.9777523157579125,
+      "hi": 0.9906124213903024,
+      "half_width": 0.006430052816194881,
+      "n": 1382
+    },
+    "ci_contaminated": {
+      "value": 0.0,
+      "lo": 0.0,
+      "hi": 0.0027719323853704608,
+      "half_width": 0.0013859661926852302,
+      "n": 1382
+    },
+    "ci_unassigned": {
+      "value": 0.01447178002894356,
+      "lo": 0.009387578609697723,
+      "hi": 0.022247684242087486,
+      "half_width": 0.006430052816194881,
+      "n": 1382
+    },
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 20,
+    "sums_to_one": true
+  },
+  "identity_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.9971874782421593,
+      "hi": 1.0,
+      "half_width": 0.0014062608789203648,
+      "n": 1362
+    },
+    "n_correct": 1362,
+    "n_assigned": 1362
+  },
+  "identity_coverage": {
+    "value": 0.9855282199710564,
+    "ci": {
+      "value": 0.9855282199710564,
+      "lo": 0.9777523157579125,
+      "hi": 0.9906124213903024,
+      "half_width": 0.006430052816194881,
+      "n": 1382
+    },
+    "n_assigned": 1362,
+    "n_total": 1382,
+    "n_unassigned_no_detection": 0,
+    "n_unassigned_detecting": 20
+  },
+  "evidence_precision": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.8668077490609515,
+      "hi": 1.0,
+      "half_width": 0.06659612546952423,
+      "n": 25
+    },
+    "n_written": 25,
+    "n_correct": 25,
+    "n_wrong": 0,
+    "evidence_yield": 0.01808972503617945,
+    "evidence_yield_ci": {
+      "value": 0.01808972503617945,
+      "lo": 0.01228266071844045,
+      "hi": 0.02656843474994845,
+      "half_width": 0.007142887015753999,
+      "n": 1382
+    }
+  },
+  "identity_purity": {
+    "value": 1.0,
+    "ci": {
+      "value": 1.0,
+      "lo": 0.8864866068260312,
+      "hi": 1.0,
+      "half_width": 0.05675669658698438,
+      "n": 30
+    },
+    "n_codes": 30,
+    "impure_codes": []
+  },
+  "fragmentation": {
+    "value": 1.2,
+    "n_people": 25,
+    "per_person": {
+      "0001": 1,
+      "0003": 1,
+      "0004": 1,
+      "0005": 1,
+      "0006": 2,
+      "0007": 1,
+      "0009": 1,
+      "0010": 1,
+      "0011": 1,
+      "0012": 1,
+      "0013": 1,
+      "0014": 2,
+      "0015": 2,
+      "0016": 1,
+      "0017": 1,
+      "0018": 1,
+      "0019": 1,
+      "0020": 1,
+      "0021": 2,
+      "0022": 2,
+      "0023": 1,
+      "0024": 1,
+      "0025": 1,
+      "0026": 1,
+      "0027": 1
+    }
+  },
+  "duplicate_identities": {
+    "value": 0.2,
+    "n_people": 25,
+    "total_duplicates": 5,
+    "people_with_duplicates": 5,
+    "per_person": {
+      "0001": 0,
+      "0003": 0,
+      "0004": 0,
+      "0005": 0,
+      "0006": 1,
+      "0007": 0,
+      "0009": 0,
+      "0010": 0,
+      "0011": 0,
+      "0012": 0,
+      "0013": 0,
+      "0014": 1,
+      "0015": 1,
+      "0016": 0,
+      "0017": 0,
+      "0018": 0,
+      "0019": 0,
+      "0020": 0,
+      "0021": 1,
+      "0022": 1,
+      "0023": 0,
+      "0024": 0,
+      "0025": 0,
+      "0026": 0,
+      "0027": 0
+    },
+    "codes_owned": {
+      "0001": [
+        "SDT-0019"
+      ],
+      "0003": [
+        "SDT-0001"
+      ],
+      "0004": [
+        "SDT-0032"
+      ],
+      "0005": [
+        "SDT-0003"
+      ],
+      "0006": [
+        "SDT-0022",
+        "SDT-0023"
+      ],
+      "0007": [
+        "SDT-0027"
+      ],
+      "0009": [
+        "SDT-0024"
+      ],
+      "0010": [
+        "SDT-0021"
+      ],
+      "0011": [
+        "SDT-0029"
+      ],
+      "0012": [
+        "SDT-0020"
+      ],
+      "0013": [
+        "SDT-0004"
+      ],
+      "0014": [
+        "SDT-0030",
+        "SDT-0031"
+      ],
+      "0015": [
+        "SDT-0005",
+        "SDT-0006"
+      ],
+      "0016": [
+        "SDT-0007"
+      ],
+      "0017": [
+        "SDT-0008"
+      ],
+      "0018": [
+        "SDT-0018"
+      ],
+      "0019": [
+        "SDT-0009"
+      ],
+      "0020": [
+        "SDT-0028"
+      ],
+      "0021": [
+        "SDT-0010",
+        "SDT-0011"
+      ],
+      "0022": [
+        "SDT-0014",
+        "SDT-0015"
+      ],
+      "0023": [
+        "SDT-0017"
+      ],
+      "0024": [
+        "SDT-0012"
+      ],
+      "0025": [
+        "SDT-0013"
+      ],
+      "0026": [
+        "SDT-0025"
+      ],
+      "0027": [
+        "SDT-0026"
+      ]
+    }
+  },
+  "id_switches": {
+    "value": 4,
+    "n_tracks": 26,
+    "per_track": {
+      "5": 1,
+      "9": 1,
+      "20": 1,
+      "27": 1
+    }
+  },
+  "cross_camera_reassoc": {
+    "value": null,
+    "n_pairs": 0,
+    "detail": [],
+    "note": "no ground-truth person appeared on more than one camera"
+  },
+  "runtime": {
+    "n_frames": 2292,
+    "mean_frame_latency_ms": 64.22005229324874,
+    "median_frame_latency_ms": 62.651000000187196,
+    "throughput_fps": 15.571460381777467,
+    "total_wall_seconds": 147.19235985612613,
+    "machine": "Apple M5 (CPU inference, ONNXRuntime CPUExecutionProvider)",
+    "driver": "LiveStream._analyze_frame (live path)"
+  },
+  "n_records": 1382,
+  "config_file": "F_no_zoom.json",
+  "config_flags": {
+    "enable_face_anchor": true,
+    "enable_colour_fallback": true,
+    "enable_reid_fallback": true,
+    "enable_id_switch_guard": true,
+    "enable_evidence_gating": true,
+    "enable_tracklet_voting": true
+  },
+  "dataset": {
+    "adapter": "chokepoint",
+    "root": "/Users/lokii/Downloads/Smart-Detect-main/eval/data/chokepoint"
+  },
+  "harness_notes": [
+    "DRIVER: LiveStream._analyze_frame() \u2014 the real production per-frame loop.",
+    "head-zoom second pass IS exercised (it runs inside _analyze_frame).",
+    "raw unconfirmed YOLO boxes appear as tid=None 'Detecting...' entries.",
+    "on-screen pre-commit frames are NOT retroactively relabelled (production divergence; DB trail is backfilled under the committed code).",
+    "evidence rows are limited by production's 30s wall-clock dedup, so n_written is smaller than the offline run's per-frame rows."
+  ],
+  "voter_stats": {
+    "committed": 0,
+    "tracks": 0,
+    "never_had_a_face": 0
+  }
+}

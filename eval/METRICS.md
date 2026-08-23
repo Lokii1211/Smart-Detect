@@ -162,7 +162,10 @@ barely moves contamination. Report with the contamination fraction.
 
 ## 5. Fragmentation ↓
 
-Mean distinct codes per ground-truth person — the duplicate-identity cost.
+Mean distinct codes per ground-truth person.
+
+This is **not** the duplicate rate — see §6, which separates genuine
+over-splitting from stray contaminated frames. Fragmentation counts both.
 
 ```
 fragmentation = ( Σ_{p ∈ P} |{ r.code : r ∈ R, r.gt = p, r.code ≠ "Detecting..." }| ) / |P|
@@ -178,7 +181,44 @@ P = { r.gt : r ∈ R, r.code ≠ "Detecting..." }
 > pre-hardening config scores a *perfect* 1.000 fragmentation while being
 > entirely wrong.
 
-## 6. ID Switches ↓
+## 6. Duplicate Identities ↓
+
+Duplicate identities per ground-truth person — the metric the registration
+pose gate targets.
+
+Distinct from `fragmentation` (§5), which counts **every** distinct code a
+person was ever assigned and therefore also counts single stray frames caused
+by contamination. A person with 80 frames under code `X` and 1 misassigned
+frame under someone else's code `Y` has fragmentation 2.0 but **zero**
+duplicates — `Y` is not their identity, it is an error already counted by
+contamination.
+
+A code counts as belonging to a person only when that person is the code's
+**majority owner**:
+
+```
+owned(p)      = { c ∈ C : maj(c) = p }
+duplicates(p) = max(0, |owned(p)| − 1)
+duplicate_identities = ( Σ_{p ∈ owners} duplicates(p) ) / |owners|
+owners = { p : |owned(p)| ≥ 1 }
+```
+
+**Ideal exactly 0.0.** Undefined when no code has a majority owner.
+
+Note the denominator is `|owners|`, **not** the number of ground-truth people:
+a person who was never successfully identified owns no code and does not
+dilute the mean.
+
+Reported alongside the raw counts (`total_duplicates`,
+`people_with_duplicates`, `per_person`, `codes_owned`) so one badly-split
+person cannot hide behind an average.
+
+> **Read with §5, never instead of it.** Fragmentation and duplicates disagree
+> by design. On this project's own worked example — one code spanning two
+> people plus one person holding two codes — fragmentation is 1.500 while
+> duplicates is 1.000. Quoting either alone misdescribes the system.
+
+## 7. ID Switches ↓
 
 Times a track's assigned code changes to a *different* code.
 
@@ -194,7 +234,7 @@ Records with `tid = None` are excluded. Not purely "lower is better": the
 ID-switch guard deliberately causes a switch when it corrects a hijacked
 track, so a more correct config can show *more* switches.
 
-## 7. Cross-camera Re-association Accuracy ↑
+## 8. Cross-camera Re-association Accuracy ↑
 
 Of people seen on more than one camera, how often the later camera reuses the
 earlier camera's code.
@@ -210,7 +250,7 @@ cross_camera_accuracy = hit / pair
 Range [0, 1]. Undefined (`n/a`) when no person appears on two cameras —
 reported as `n/a`, **never 0**: a single-camera dataset cannot fail this.
 
-## 8. Runtime
+## 9. Runtime
 
 Wall-clock around the full per-frame pipeline (detection → tracking → face
 scan → arbitration → evidence gate), single-threaded and synchronous:

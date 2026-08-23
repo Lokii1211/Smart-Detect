@@ -1,0 +1,379 @@
+{
+  "passed": true,
+  "gates": [
+    {
+      "name": "identities",
+      "actual": 25,
+      "required": 15,
+      "why": "purity/fragmentation are coarse and outlier-dominated below this",
+      "passed": true,
+      "shortfall": 0
+    },
+    {
+      "name": "labelled frames",
+      "actual": 2908,
+      "required": 1000,
+      "why": "95% Wilson intervals stay wider than the effects being compared below this",
+      "passed": true,
+      "shortfall": 0
+    },
+    {
+      "name": "cross-camera transitions",
+      "actual": 50,
+      "required": 10,
+      "why": "a re-association rate cannot be estimated from a few hand-overs",
+      "passed": true,
+      "shortfall": 0
+    }
+  ],
+  "stats": {
+    "n_identities": 25,
+    "n_frames": 2908,
+    "n_person_frames": 2908,
+    "n_cameras": 3,
+    "n_cross_camera_transitions": 50,
+    "identities": [
+      "0001",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015",
+      "0016",
+      "0017",
+      "0018",
+      "0019",
+      "0020",
+      "0021",
+      "0022",
+      "0023",
+      "0024",
+      "0025",
+      "0026",
+      "0027"
+    ],
+    "cameras": [
+      "P1E_S1_C1",
+      "P1E_S1_C2",
+      "P1E_S1_C3"
+    ],
+    "frames_per_identity": {
+      "0001": 124,
+      "0003": 133,
+      "0004": 113,
+      "0005": 106,
+      "0006": 134,
+      "0007": 115,
+      "0009": 86,
+      "0010": 123,
+      "0011": 110,
+      "0012": 116,
+      "0013": 163,
+      "0014": 105,
+      "0015": 134,
+      "0016": 91,
+      "0017": 132,
+      "0018": 106,
+      "0019": 105,
+      "0020": 123,
+      "0021": 111,
+      "0022": 99,
+      "0023": 84,
+      "0024": 126,
+      "0025": 149,
+      "0026": 94,
+      "0027": 126
+    },
+    "identities_per_camera": {
+      "P1E_S1_C1": 25,
+      "P1E_S1_C2": 25,
+      "P1E_S1_C3": 25
+    },
+    "multi_camera_identities": [
+      "0001",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015",
+      "0016",
+      "0017",
+      "0018",
+      "0019",
+      "0020",
+      "0021",
+      "0022",
+      "0023",
+      "0024",
+      "0025",
+      "0026",
+      "0027"
+    ],
+    "transitions_detail": [
+      {
+        "identity": "0001",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0001",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0003",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0003",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0004",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0004",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0005",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0005",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0006",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0006",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0007",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0007",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0009",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0009",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0010",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0010",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0011",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0011",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0012",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0012",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0013",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0013",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0014",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0014",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0015",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0015",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0016",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0016",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0017",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0017",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0018",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0018",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0019",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0019",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0020",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0020",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0021",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0021",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0022",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0022",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0023",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0023",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0024",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0024",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0025",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0025",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0026",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0026",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      },
+      {
+        "identity": "0027",
+        "from_cam": "P1E_S1_C1",
+        "to_cam": "P1E_S1_C2"
+      },
+      {
+        "identity": "0027",
+        "from_cam": "P1E_S1_C2",
+        "to_cam": "P1E_S1_C3"
+      }
+    ]
+  }
+}

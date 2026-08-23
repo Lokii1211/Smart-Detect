@@ -80,22 +80,17 @@ class FolderAdapter(DatasetAdapter):
             yield SequenceMeta(seq_id=cam_dir.name, camera_id=cam_dir.name,
                                n_frames=n, note=f"{len(self._person_dirs(cam_dir))} identities")
 
-    def ground_truth_index(self) -> Iterator[tuple]:
-        """Label-only pass — reads directory structure, decodes no images."""
-        for cam_dir in self._cameras:
-            for person_dir in self._person_dirs(cam_dir):
-                for f in sorted(person_dir.iterdir()):
-                    if f.suffix.lower() in _IMAGE_EXTS:
-                        yield (cam_dir.name, cam_dir.name,
-                               f"{cam_dir.name}/{person_dir.name}/{f.name}",
-                               [person_dir.name])
+    def _ordered_items(self, cam_dir: Path) -> List[tuple]:
+        """
+        (filename, person_id, path) for one camera, in the SINGLE canonical
+        order defined by self.order (see class docstring).
 
-    def frames(self, seq_id: str) -> Iterator[Frame]:
-        cam_dir = self.root / seq_id
-        if not cam_dir.is_dir():
-            raise FileNotFoundError(f"FolderAdapter: no such camera sequence: {cam_dir}")
-
-        # (filename, person_id, path) — ordering per self.order, see class docstring
+        Both frames() and ground_truth_index() read from this one function, so
+        a per-sequence frame cap keeps identical frames in each. They used to
+        order independently — the index always grouped by person while frames()
+        honoured self.order — which meant that under truncation the adequacy
+        gate could validate a different subset than the runner scored.
+        """
         per_person: List[List[tuple]] = []
         for person_dir in self._person_dirs(cam_dir):
             files = [(f.name, person_dir.name, f) for f in sorted(person_dir.iterdir())
@@ -110,6 +105,27 @@ class FolderAdapter(DatasetAdapter):
         else:                                  # round-robin
             for row in zip_longest(*per_person):
                 items.extend(x for x in row if x is not None)
+        return items
+
+    def ground_truth_index(self, max_frames: int = 0) -> Iterator[tuple]:
+        """Label-only pass — reads directory structure, decodes no images.
+        Shares _ordered_items() with frames(), so the cap selects the same
+        frames the runner will score."""
+        for cam_dir in self._cameras:
+            items = self._ordered_items(cam_dir)
+            if max_frames:
+                items = items[:max_frames]
+            for fname, person_id, _path in items:
+                yield (cam_dir.name, cam_dir.name,
+                       f"{cam_dir.name}/{person_id}/{fname}",
+                       [person_id])
+
+    def frames(self, seq_id: str) -> Iterator[Frame]:
+        cam_dir = self.root / seq_id
+        if not cam_dir.is_dir():
+            raise FileNotFoundError(f"FolderAdapter: no such camera sequence: {cam_dir}")
+
+        items = self._ordered_items(cam_dir)
 
         for i, (fname, person_id, path) in enumerate(items):
             img = cv2.imread(str(path))

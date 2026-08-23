@@ -15,4 +15,9 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: true,
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.js',
+  },
 })

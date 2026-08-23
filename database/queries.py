@@ -169,6 +169,55 @@ def _find_person_python(
     return {"unique_code": best_code, "similarity": round(best_sim, 4)}
 
 
+def find_person_candidates(
+    embedding: np.ndarray,
+    db: Session,
+    top_k: int = 5,
+    min_similarity: float = 0.30,
+) -> List[Dict[str, Any]]:
+    """
+    Top-k gallery candidates for a face search, best-first.
+
+    READ-ONLY ranking used only to enrich the search response so the operator
+    can see how close the field was. It does NOT decide identity — callers
+    still use find_person_by_embedding for the actual match. No thresholds,
+    no identity logic, no writes.
+    """
+    q = db.query(Person).filter(Person.face_embedding.isnot(None))
+    scored: List[Dict[str, Any]] = []
+
+    for person in q.all():
+        candidates: List[np.ndarray] = []
+        try:
+            candidates.append(np.array(json.loads(person.face_embedding), dtype=np.float32))
+        except Exception:
+            continue
+        if getattr(person, "face_templates", None):
+            try:
+                for vec in json.loads(person.face_templates):
+                    candidates.append(np.array(vec, dtype=np.float32))
+            except Exception:
+                pass
+
+        best = -1.0
+        for stored in candidates:
+            if stored.shape != embedding.shape:
+                continue
+            sim = _cosine_similarity(embedding, stored)
+            if sim > best:
+                best = sim
+        if best >= min_similarity:
+            scored.append({
+                "unique_code": person.unique_code,
+                "display_name": getattr(person, "display_name", None),
+                "photo_path": getattr(person, "photo_path", None),
+                "similarity": round(float(best), 4),
+            })
+
+    scored.sort(key=lambda d: -d["similarity"])
+    return scored[:top_k]
+
+
 # ─── Query 2 — Find Person by Dress Color ────────────────────────────────────
 
 def find_by_dress_color(

@@ -1,0 +1,73 @@
+{
+  "_ARCHIVED": "2026-08-05 \u2014 SUPERSEDED, DO NOT CITE",
+  "_superseded_by": "eval/results/_paper_main/ (and any newer full-corpus sweep)",
+  "_invalidated_by": [
+    "CoreML execution provider, 2026-08-02 09:29 \u2014 latency here is CPU-only",
+    "lazy OSNet re-ID, 2026-08-02 22:50",
+    "duplicate_identities metric added, 2026-08-02 22:54 \u2014 ABSENT from this file",
+    "registration pose gate, 2026-08-02 23:06 \u2014 changes which frames mint identities",
+    "truncation-aware adequacy gate, 2026-08-04/05"
+  ],
+  "_scored": "45 person-frames, 2 identities, 1 cross-camera transition \u2014 gate FAILED, ran with --allow-underpowered",
+  "_see": "eval/results/archive/README.md",
+  "passed": false,
+  "gates": [
+    {
+      "name": "identities",
+      "actual": 2,
+      "required": 15,
+      "why": "purity/fragmentation are coarse and outlier-dominated below this",
+      "passed": false,
+      "shortfall": 13
+    },
+    {
+      "name": "labelled frames",
+      "actual": 45,
+      "required": 1000,
+      "why": "95% Wilson intervals stay wider than the effects being compared below this",
+      "passed": false,
+      "shortfall": 955
+    },
+    {
+      "name": "cross-camera transitions",
+      "actual": 1,
+      "required": 10,
+      "why": "a re-association rate cannot be estimated from a few hand-overs",
+      "passed": false,
+      "shortfall": 9
+    }
+  ],
+  "stats": {
+    "n_identities": 2,
+    "n_frames": 45,
+    "n_person_frames": 45,
+    "n_cameras": 2,
+    "n_cross_camera_transitions": 1,
+    "identities": [
+      "personA_man",
+      "personB_woman"
+    ],
+    "cameras": [
+      "cam_headpose",
+      "cam_walking"
+    ],
+    "frames_per_identity": {
+      "personA_man": 30,
+      "personB_woman": 15
+    },
+    "identities_per_camera": {
+      "cam_headpose": 2,
+      "cam_walking": 1
+    },
+    "multi_camera_identities": [
+      "personA_man"
+    ],
+    "transitions_detail": [
+      {
+        "identity": "personA_man",
+        "from_cam": "cam_headpose",
+        "to_cam": "cam_walking"
+      }
+    ]
+  }
+}

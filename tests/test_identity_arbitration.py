@@ -282,6 +282,22 @@ def live_stream():
                       zone_id="test", camera_id="CAM-TEST")
 
 
+class TestFacelessTrackGuard:
+    """A track that never produced a face (e.g. a YOLO false positive like a
+    chair) must never take an identity from the colour/Re-ID fallback — only
+    tracks with face evidence (now or earlier) may call identify()."""
+
+    def test_track_without_face_history_rejects_fallback(self, live_stream):
+        assert live_stream._track_has_face_evidence(7, None) is False
+
+    def test_track_with_prior_face_allows_turn_away_reassociation(self, live_stream):
+        live_stream._face_bbox_history[7] = [[10, 10, 60, 70]]
+        assert live_stream._track_has_face_evidence(7, None) is True
+
+    def test_visible_face_allows_identify_even_before_history(self, live_stream):
+        emb = make_embedding(5)
+        assert live_stream._track_has_face_evidence(7, emb) is True
+
 class TestIdSwitchGuard:
 
     def _setup(self, db, ls, limit=2):

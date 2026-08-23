@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { mediaUrl } from '../auth'
+import Lightbox from '../components/Lightbox'
+import MergeSuggestionBanner from '../components/MergeSuggestionBanner'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -30,11 +32,12 @@ const METHOD_COLORS = {
 }
 
 /* ── Search by SDT code ────────────────────────────── */
-function SearchById({ navigate }) {
+function SearchById({ navigate, onPerson }) {
   const [query,   setQuery]   = useState('')
   const [person,  setPerson]  = useState(null)
   const [error,   setError]   = useState(null)
   const [loading, setLoading] = useState(false)
+  const [zoom,    setZoom]    = useState(null)   // photo enlarged in lightbox
 
   const lookup = async () => {
     const raw = query.trim()
@@ -42,10 +45,10 @@ function SearchById({ navigate }) {
     // Normalize "8" / "008" / "sdt-8" → SDT-0008 (codes are always 4 digits)
     const digits = raw.replace(/\D/g, '')
     const code = digits ? `SDT-${digits.padStart(4, '0')}` : raw.toUpperCase()
-    setLoading(true); setError(null); setPerson(null)
+    setLoading(true); setError(null); setPerson(null); onPerson?.(null)
     try {
       const res = await axios.get(`${API}/persons/${encodeURIComponent(code)}`)
-      setPerson(res.data)
+      setPerson(res.data); onPerson?.(res.data)
     } catch (err) {
       if (err.response?.status === 404) {
         // Fall back to a name search across all registered people
@@ -56,7 +59,7 @@ function SearchById({ navigate }) {
             (p.display_name || '').toLowerCase().includes(q))
           if (hit) {
             const res2 = await axios.get(`${API}/persons/${encodeURIComponent(hit.unique_code)}`)
-            setPerson(res2.data)
+            setPerson(res2.data); onPerson?.(res2.data)
             return
           }
         } catch { /* fall through to error */ }
@@ -100,10 +103,14 @@ function SearchById({ navigate }) {
       {person && (
         <div className="fade-in" style={{ marginTop: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 42, height: 42, borderRadius: 9, overflow: 'hidden', flexShrink: 0,
-              background: '#f0f0f0', border: '0.5px solid #e8e8e8',
-            }}>
+            <div
+              onClick={() => person.photo_path && setZoom(person.photo_path)}
+              title="Click to enlarge"
+              style={{
+                width: 42, height: 42, borderRadius: 9, overflow: 'hidden', flexShrink: 0,
+                background: '#f0f0f0', border: '0.5px solid #e8e8e8',
+                cursor: person.photo_path ? 'zoom-in' : 'default',
+              }}>
               {person.photo_path && (
                 <img src={mediaUrl(person.photo_path)} alt=""
                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -161,10 +168,15 @@ function SearchById({ navigate }) {
           {shots.length > 0 && (
             <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
               {shots.map((a, i) => (
-                <div key={i} style={{
-                  width: 46, height: 46, borderRadius: 6, overflow: 'hidden',
-                  background: '#f0f0f0', border: '0.5px solid #e8e8e8',
-                }}>
+                <div
+                  key={i}
+                  onClick={() => setZoom(a.snapshot)}
+                  title="Click to enlarge"
+                  style={{
+                    width: 46, height: 46, borderRadius: 6, overflow: 'hidden',
+                    background: '#f0f0f0', border: '0.5px solid #e8e8e8',
+                    cursor: 'zoom-in',
+                  }}>
                   <img src={mediaUrl(a.snapshot)} alt=""
                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                        onError={e => { e.target.parentElement.style.display = 'none' }} />
@@ -182,6 +194,8 @@ function SearchById({ navigate }) {
             }}>
             View all appearances →
           </button>
+
+          {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
         </div>
       )}
     </div>
@@ -333,7 +347,10 @@ export default function PhotoSearch() {
   const [checking, setChecking]   = useState(false)
   const [searching, setSearching] = useState(false)
   const [result, setResult]       = useState(null)
+  const [idPerson, setIdPerson]   = useState(null)   // person resolved via the "find by ID" card
   const [filter, setFilter]       = useState('all')
+  const [zoom, setZoom]           = useState(null)          // photo in lightbox
+  const [suggestions, setSuggestions] = useState([])        // high-confidence dups for the matched person
 
   // Camera count from status
   /* ── Real camera roster + live states (polled every 5s) ── */
@@ -394,10 +411,43 @@ export default function PhotoSearch() {
     }
   }
 
+  /* ── High-confidence duplicate suggestions for the matched person ──
+     Fetched once per matched code (the endpoint is rate-limited). Only
+     suggestions >= 85% are surfaced inline — prominence, never auto-merge. */
+  useEffect(() => {
+    if (!result?.matched || !result?.unique_code) {
+      setSuggestions([])
+      return
+    }
+    let cancelled = false
+    axios.get(`${API}/persons/duplicate-suggestions`)
+      .then(r => {
+        if (cancelled) return
+        setSuggestions((r.data || []).filter(p =>
+          p.similarity >= 0.85 &&
+          (p.code_a === result.unique_code || p.code_b === result.unique_code)))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [result?.matched, result?.unique_code])
+
+  /* After a merge the identity data changed — re-run the search so the
+     result reflects the merged person (and any stale code is replaced). */
+  const handleMerged = () => {
+    if (file && faceOk) handleSearch()
+  }
+
+  /* ── ID-search person → same camera grid as photo search ── */
+  const handleIdPerson = (person) => {
+    setIdPerson(person)
+    if (person) { setResult(null); setFilter('all') }
+  }
+
   /* ── Search ──────────────────────────────────────── */
   const handleSearch = async () => {
     if (!file || !faceOk) return
     setSearching(true)
+    setIdPerson(null)
     try {
       const b64 = await toBase64(file)
       const res = await axios.post(`${API}/search/by-photo`, { base64_image: b64, scope })
@@ -456,9 +506,48 @@ export default function PhotoSearch() {
     return grid
   }
 
-  const grid = buildGrid()
+  /* ── Build the same camera grid from an ID-search result ──
+     The person detail's appearances become history cards (one per camera,
+     counting every sighting); every other camera shows as "not detected". */
+  const buildIdGrid = () => {
+    if (!idPerson) return []
+    const activeById = Object.fromEntries(camStatus.cameras.map(c => [c.camera_id, c]))
+    const byCam = {}
+    for (const a of idPerson.appearances || []) {
+      const k = a.camera_id
+      if (!byCam[k]) byCam[k] = {
+        camera_id: k, zone_id: a.zone_id, match_type: 'history', count: 0,
+        detected_at: a.seen_at, confidence: a.confidence,
+      }
+      byCam[k].count += 1
+      if ((a.seen_at || '') > (byCam[k].detected_at || '')) {
+        byCam[k].detected_at = a.seen_at
+        byCam[k].confidence  = a.confidence
+      }
+    }
+    const allMatch = Object.values(byCam).map(c => ({
+      ...c,
+      is_active:   activeById[c.camera_id]?.is_active || false,
+      camera_name: activeById[c.camera_id]?.label || c.camera_id,
+    }))
+    const knownIds = new Set(allMatch.map(c => c.camera_id))
+    const others = camStatus.cameras
+      .filter(c => !knownIds.has(c.camera_id))
+      .map(c => ({
+        camera_id: c.camera_id, camera_name: c.label || c.camera_id,
+        zone_id: c.zone_id, match_type: 'none', is_active: c.is_active,
+      }))
+    const grid = [...allMatch, ...others]
+
+    if (filter === 'history') return grid.filter(c => c.match_type === 'history')
+    if (filter === 'none')    return grid.filter(c => c.match_type === 'none')
+    return grid
+  }
+
+  const grid = result ? buildGrid() : buildIdGrid()
   const liveCount    = result?.live_matches?.length    || 0
   const historyCount = result?.history_matches?.length || 0
+  const gridTotal    = result ? liveCount + historyCount : (idPerson?.total_sightings || 0)
 
   return (
     <div className="fade-in" style={{
@@ -563,7 +652,7 @@ export default function PhotoSearch() {
         </button>
 
         {/* Search by SDT code */}
-        <SearchById navigate={navigate} />
+        <SearchById navigate={navigate} onPerson={handleIdPerson} />
 
         {/* Result summary */}
         {result && result.matched !== undefined && (
@@ -574,19 +663,35 @@ export default function PhotoSearch() {
                   onClick={() => navigate(`/people?code=${encodeURIComponent(result.unique_code)}`)}
                   title="View this person's appearances"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
-                    padding: '4px 10px', borderRadius: 7, border: '0.5px solid #e0e0e0',
-                    background: '#f8f8f8', cursor: 'pointer', fontFamily: 'monospace',
-                    fontSize: 13, fontWeight: 600, color: '#111',
+                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8,
+                    padding: 8, borderRadius: 10, border: '0.5px solid #e0e0e0',
+                    background: '#f8f8f8', cursor: 'pointer', width: '100%', textAlign: 'left',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#eef2ff' }}
                   onMouseLeave={e => { e.currentTarget.style.background = '#f8f8f8' }}
                 >
-                  {result.unique_code}
-                  <span style={{ fontSize: 10, color: '#6366f1', fontFamily: 'inherit' }}>view appearances →</span>
+                  {/* Registration photo — always face-visible (enrolment is
+                      face-gated), unlike a live/sighting crop which may not be */}
+                  {result.photo_path && (
+                    <img
+                      src={mediaUrl(result.photo_path)} alt=""
+                      onClick={e => { e.stopPropagation(); setZoom(result.photo_path) }}
+                      title="Click to enlarge"
+                      style={{
+                        width: 44, height: 44, borderRadius: 8, objectFit: 'cover',
+                        flexShrink: 0, border: '1px solid #e0e0e0', cursor: 'zoom-in',
+                      }} />
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#111' }}>
+                      {result.unique_code}
+                    </span>
+                    <span style={{ fontSize: 10, color: '#6366f1' }}>view appearances →</span>
+                  </div>
                 </button>
                 <dl style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {[
+                    ['Match confidence', `${((result.confidence || 0) * 100).toFixed(1)}%`, '#22c55e'],
                     ['Cameras searched', result.cameras_searched ?? 1],
                     ['Live matches',     liveCount,    '#22c55e'],
                     ['History matches',  historyCount, '#3b82f6'],
@@ -599,6 +704,56 @@ export default function PhotoSearch() {
                     </div>
                   ))}
                 </dl>
+
+                {/* Field — how close the other candidates were, not just the winner */}
+                {(() => {
+                  const others = (result.candidates || [])
+                    .filter(c => c.unique_code !== result.unique_code)
+                  if (others.length === 0) return null
+                  return (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
+                        Field — other candidates
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {others.map(c => (
+                          <div key={c.unique_code} style={{
+                            display: 'flex', alignItems: 'center', gap: 6, fontSize: 10,
+                            padding: '3px 6px', borderRadius: 6, background: '#f8fafc',
+                          }}>
+                            <div
+                              onClick={() => c.photo_path && setZoom(c.photo_path)}
+                              title={c.photo_path ? 'Click to enlarge' : undefined}
+                              style={{
+                                width: 22, height: 22, borderRadius: 5, overflow: 'hidden',
+                                background: '#f0f0f0', flexShrink: 0,
+                                cursor: c.photo_path ? 'zoom-in' : 'default',
+                              }}>
+                              {c.photo_path && (
+                                <img src={mediaUrl(c.photo_path)} alt=""
+                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                     onError={e => { e.target.style.display = 'none' }} />
+                              )}
+                            </div>
+                            <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#334155' }}>
+                              {c.unique_code}
+                            </span>
+                            {c.display_name && <span style={{ color: '#94a3b8' }}>· {c.display_name}</span>}
+                            <span style={{ marginLeft: 'auto', fontWeight: 600, color: '#475569' }}>
+                              {(c.similarity * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* High-confidence duplicate suggestion — inline, click to merge */}
+                {suggestions.map(p => (
+                  <MergeSuggestionBanner key={p.code_a + p.code_b} pair={p}
+                    code={result.unique_code} onMerged={handleMerged} />
+                ))}
               </>
             ) : (
               <div style={{ color: '#aaa', fontSize: 12, textAlign: 'center' }}>
@@ -609,9 +764,12 @@ export default function PhotoSearch() {
         )}
 
         {/* Clear */}
-        {(result || preview) && (
+        {(result || idPerson || preview) && (
           <button className="btn btn-white" style={{ width: '100%' }}
-            onClick={() => { setFile(null); setPreview(null); setFaceOk(null); setResult(null) }}>
+            onClick={() => {
+              setFile(null); setPreview(null); setFaceOk(null)
+              setResult(null); setIdPerson(null); setSuggestions([])
+            }}>
             Clear search
           </button>
         )}
@@ -622,7 +780,7 @@ export default function PhotoSearch() {
         {/* Header */}
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>
-            Camera grid {result ? `— ${liveCount + historyCount} detections` : ''}
+            Camera grid {result || idPerson ? `— ${gridTotal} detection${gridTotal === 1 ? '' : 's'}` : ''}
           </div>
           <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
             Green = live now · Blue = history · Gray = not detected
@@ -630,7 +788,7 @@ export default function PhotoSearch() {
         </div>
 
         {/* Filter tabs */}
-        {result && (
+        {(result || idPerson) && (
           <div className="tab-strip" style={{ marginBottom: 14, width: 'fit-content' }}>
             {[['all','All cameras'], ['live','Live matches'], ['history','History only'], ['none','Not detected']].map(([v, l]) => (
               <button key={v} className={`tab-item ${filter === v ? 'active' : ''}`} onClick={() => setFilter(v)}>{l}</button>
@@ -638,7 +796,7 @@ export default function PhotoSearch() {
           </div>
         )}
 
-        {result ? (
+        {result || idPerson ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
             {grid.map((cam, i) => <CameraCard key={i} cam={cam} />)}
           </div>
@@ -652,13 +810,15 @@ export default function PhotoSearch() {
                 d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span style={{ fontSize: 13 }}>Upload a photo to search cameras</span>
+            <span style={{ fontSize: 13 }}>Upload a photo — or search by ID — to see cameras</span>
           </div>
         )}
 
         {/* Timeline */}
         {result?.timeline && <Timeline stops={result.timeline} />}
       </div>
+
+      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
     </div>
   )
 }

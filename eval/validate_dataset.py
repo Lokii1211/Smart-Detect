@@ -49,6 +49,7 @@ class DatasetStats:
     n_person_frames: int = 0             # sum of GT people over frames
     n_cameras: int = 0
     n_cross_camera_transitions: int = 0
+    max_frames: int = 0                  # per-sequence cap this reflects (0 = none)
     identities: List[str] = field(default_factory=list)
     cameras: List[str] = field(default_factory=list)
     frames_per_identity: Dict[str, int] = field(default_factory=dict)
@@ -63,6 +64,7 @@ class DatasetStats:
             "n_person_frames": self.n_person_frames,
             "n_cameras": self.n_cameras,
             "n_cross_camera_transitions": self.n_cross_camera_transitions,
+            "max_frames": self.max_frames,
             "identities": self.identities,
             "cameras": self.cameras,
             "frames_per_identity": self.frames_per_identity,
@@ -72,7 +74,7 @@ class DatasetStats:
         }
 
 
-def collect_stats(adapter) -> DatasetStats:
+def collect_stats(adapter, max_frames: int = 0) -> DatasetStats:
     """
     Walk the adapter's ground-truth index (labels only, no image decoding).
 
@@ -80,6 +82,12 @@ def collect_stats(adapter) -> DatasetStats:
     single identity, ordered by first appearance — the same construction the
     cross_camera_reassociation metric scores. An identity on 3 cameras
     contributes 2 transitions.
+
+    max_frames is the per-sequence cap the RUNNER will apply. It must be passed
+    through, because the gate is a claim about the frames that get scored, not
+    about the frames that happen to exist on disk. Validating the full corpus
+    and then scoring a truncated subset is how a 25-identity corpus produced a
+    14-identity results table while reporting PASS.
     """
     st = DatasetStats()
     per_identity_cams: Dict[str, Dict[str, int]] = defaultdict(dict)  # id -> cam -> first index
@@ -88,7 +96,7 @@ def collect_stats(adapter) -> DatasetStats:
     idx = 0
     labelled_frames = 0
 
-    for _seq_id, camera_id, _frame_id, person_ids in adapter.ground_truth_index():
+    for _seq_id, camera_id, _frame_id, person_ids in adapter.ground_truth_index(max_frames):
         idx += 1
         if camera_id not in cams_seen:
             cams_seen.append(camera_id)
@@ -100,6 +108,7 @@ def collect_stats(adapter) -> DatasetStats:
             if camera_id not in per_identity_cams[pid]:
                 per_identity_cams[pid][camera_id] = idx
 
+    st.max_frames = max_frames
     st.n_frames = labelled_frames
     st.cameras = sorted(cams_seen)
     st.n_cameras = len(cams_seen)
@@ -152,6 +161,9 @@ def format_report(report: Dict, adapter_name: str, root: str) -> str:
     L.append("=" * 74)
     L.append(f"adapter     : {adapter_name}")
     L.append(f"data root   : {root}")
+    mf = st.get("max_frames") or 0
+    L.append(f"frame set   : {'FULL corpus (no cap)' if not mf else f'TRUNCATED — first {mf} frames per sequence'}")
+    L.append("            : (this is the set that will be SCORED, and the set these gates measure)")
     L.append("")
     if report.get("load_error"):
         L.append("DATASET COULD NOT BE LOADED")
@@ -214,7 +226,7 @@ def build_adapter(name: str, data_root: str):
     return ChokePointAdapter(data_root)
 
 
-def validate(adapter_name: str, data_root: str) -> Dict:
+def validate(adapter_name: str, data_root: str, max_frames: int = 0) -> Dict:
     """
     Returns a report dict. A dataset that cannot be loaded at all fails the
     gate with `load_error` set — never a traceback, and never a synthesised
@@ -224,11 +236,12 @@ def validate(adapter_name: str, data_root: str) -> Dict:
         adapter = build_adapter(adapter_name, data_root)
     except FileNotFoundError as exc:
         empty = DatasetStats()
+        empty.max_frames = max_frames
         rep = check(empty)
         rep["passed"] = False
         rep["load_error"] = str(exc)
         return rep
-    st = collect_stats(adapter)
+    st = collect_stats(adapter, max_frames=max_frames)
     return check(st)
 
 
@@ -236,10 +249,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--adapter", required=True, choices=["folder", "chokepoint"])
     ap.add_argument("--data-root", required=True)
+    ap.add_argument("--max-frames", type=int, default=0,
+                    help="per-sequence cap to validate under; must match the value "
+                         "the sweep will run with. 0 = full corpus.")
     ap.add_argument("--json-out", default="")
     args = ap.parse_args()
 
-    report = validate(args.adapter, args.data_root)
+    report = validate(args.adapter, args.data_root, max_frames=args.max_frames)
     print(format_report(report, args.adapter, str(Path(args.data_root).resolve())))
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(report, indent=2))
