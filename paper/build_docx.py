@@ -201,41 +201,67 @@ def set_borders(tbl):
     tblPr.append(borders)
 
 
-def make_table(headers, rows, widths=None, size=7.5, hl_row=None):
+def make_table(headers, rows, widths=None, size=7.5, hl_row=None, align_left_col0=True):
     t = doc.add_table(rows=1, cols=len(headers))
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    t.autofit = False
     set_borders(t)
+
+    # Set default table cell margins (padding)
+    tblPr = t._tbl.tblPr
+    tblCellMar = OxmlElement("w:tblCellMar")
+    for edge, val in (("top", 40), ("bottom", 40), ("left", 60), ("right", 60)):
+        node = OxmlElement(f"w:{edge}")
+        node.set(qn("w:w"), str(val))
+        node.set(qn("w:type"), "dxa")
+        tblCellMar.append(node)
+    tblPr.append(tblCellMar)
+
     hdr = t.rows[0].cells
     for i, h in enumerate(headers):
         hdr[i].text = ""
         p = hdr[i].paragraphs[0]
-        p.paragraph_format.space_after = Pt(1.2)
-        p.paragraph_format.space_before = Pt(1.2)
+        p.alignment = WD_ALIGN_PARAGRAPH.LEFT if (i == 0 and align_left_col0) else WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_after = Pt(2.0)
+        p.paragraph_format.space_before = Pt(2.0)
         r = p.add_run(h)
-        r.font.name, r.font.size, r.bold = SANS, Pt(size - 0.4), True
+        r.font.name, r.font.size, r.bold = SANS, Pt(size), True
         r.font.color.rgb = INK
+        shade(hdr[i], "F0F2F6")
+
     for ri, row in enumerate(rows):
         cells = t.add_row().cells
         for i, v in enumerate(row):
             cells[i].text = ""
             p = cells[i].paragraphs[0]
-            p.paragraph_format.space_after = Pt(1.0)
-            p.paragraph_format.space_before = Pt(1.0)
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT if (i == 0 and align_left_col0) else WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_after = Pt(1.5)
+            p.paragraph_format.space_before = Pt(1.5)
             mono = isinstance(v, str) and v.startswith(" ")
             txt = v[1:] if mono else v
             r = p.add_run(str(txt))
             r.font.name = "Consolas" if mono else SERIF
-            r.font.size = Pt(size - (0.5 if mono else 0))
+            r.font.size = Pt(size)
             r.font.color.rgb = INK
             if hl_row is not None and ri == hl_row:
                 r.bold = True
         if hl_row is not None and ri == hl_row:
             for c in cells:
-                shade(c, "EEF1F7")
+                shade(c, "E8ECF5")
+
     if widths:
-        for i, w in enumerate(widths):
-            for row in t.rows:
-                row.cells[i].width = Inches(w)
+        for row in t.rows:
+            for i, w in enumerate(widths):
+                cell = row.cells[i]
+                cell.width = Inches(w)
+                tcPr = cell._tc.get_or_add_tcPr()
+                tcW = tcPr.find(qn("w:tcW"))
+                if tcW is None:
+                    tcW = OxmlElement("w:tcW")
+                    tcPr.append(tcW)
+                tcW.set(qn("w:w"), str(int(w * 1440)))
+                tcW.set(qn("w:type"), "dxa")
+
     for row in t.rows:
         trPr = row._tr.get_or_add_trPr()
         if not trPr.findall(qn("w:cantSplit")):
@@ -557,18 +583,18 @@ body("We evaluate four cumulative configurations: "
 # ── Section VI: Results and Ablation Study ───────────────────────────────
 h1("VI", "Results and Ablation Study")
 
-table_caption([("TABLE II.    Headline Evaluation Metrics on ChokePoint P1E_S1 (2908 Scored Frames)", "b")])
-make_table(["Configuration", "Precision", "Coverage", "Purity", "Contam.", "Evidence", "IDs", "Cross-Cam"],
-           [["A: Pre-hardening", "15.5%", "99.8%", "0.0%", "2454", "—*", "7", "8.0%"],
-            ["B: Face Anchor", "53.8%", "98.6%", "48.3%", "1324", "—*", "29", "28.0%"],
-            ["C: + ID-Switch Guard", "99.7%", "98.6%", "93.2%", "9", "—*", "59", "50.0%"],
-            ["D: Full Pipeline", "99.7%", "98.6%", "93.2%", "9", "100.0%", "59", "50.0%"]],
-           widths=[0.78, 0.38, 0.35, 0.33, 0.35, 0.40, 0.22, 0.42],
-           size=7.0, hl_row=3)
-para("*Evidence Precision is not applicable (—) for Configs A–C because face-confirmed evidence gating is disabled; in Config D, gating prevents transient contaminated frames from writing to disk (0 incorrect rows persisted).", size=6.8, italic=True, after=2)
-
-# ── Fig. 2 Full Width: Collapse Matrix ───────────────────────────────────
+# ── Full-Width Section for Table II and Fig. 2 ───────────────────────────
 new_section(1)
+table_caption([("TABLE II.    HEADLINE EVALUATION METRICS ON CHOKEPOINT P1E_S1 (2908 SCORED FRAMES)", "b")])
+make_table(["Configuration", "Precision", "Coverage", "Purity", "Contam. Frames", "Evidence Precision", "IDs", "Cross-Camera"],
+           [["A – Pre-hardening", "15.5%", "99.8%", "0.0%", "2454", "—*", "7", "8.0%"],
+            ["B – Face Anchor", "53.8%", "98.6%", "48.3%", "1324", "—*", "29", "28.0%"],
+            ["C – + ID-Switch Guard", "99.7%", "98.6%", "93.2%", "9", "—*", "59", "50.0%"],
+            ["D – Full Pipeline", "99.7%", "98.6%", "93.2%", "9", "100.0%", "59", "50.0%"]],
+           widths=[1.45, 0.70, 0.70, 0.65, 0.95, 1.05, 0.60, 1.00],
+           size=7.8, hl_row=3)
+para("*Evidence Precision is not applicable (—) for Configs A–C because face-confirmed evidence gating is disabled; in Config D, gating prevents transient contaminated frames from writing to disk (0 incorrect rows persisted).", size=7.2, italic=True, align=WD_ALIGN_PARAGRAPH.CENTER, after=6)
+
 figure(FIGS / "fig_collapse.png",
        [("Fig. 2.  ", "b"),
         ("Identity collapse visualization on ChokePoint P1E_S1. (a) In Config A, 7 identifiers smear across 25 people with 0.0% purity. "
