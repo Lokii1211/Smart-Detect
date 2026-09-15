@@ -664,9 +664,8 @@ body([("10) Baseline Scope: ", "b"),
 # ── Section IX: Conclusion and Future Work ───────────────────────────────
 h1("IX", "Conclusion and Future Work")
 body("Ranked retrieval benchmarks fail to expose identity collapse in autonomous surveillance. "
-     "SmartDetect substantially mitigates identity collapse under the evaluated ChokePoint P1E_S1 protocol, "
-     "achieving 99.7% identity-assignment precision, 93.2% identity purity, and 100.0% evidence precision at 62.4 ms/frame. "
-     "This demonstrates that face-anchored identity arbitration, contradiction guards, and evidence gating preserve gallery integrity. "
+     "SmartDetect demonstrates that face-anchored identity arbitration, contradiction guards, and evidence gating substantially mitigate identity collapse under the evaluated ChokePoint protocol "
+     "(99.7% identity-assignment precision, 93.2% purity, 100.0% evidence precision) at minimal CPU cost (62.4 ms/frame). "
      "Future work includes evaluating direct appearance-only baselines across broader portal sequences, tracklet-level consensus voting, and spatial-topological graph constraints.")
 
 # ── Section X: Acknowledgment ────────────────────────────────────────────
