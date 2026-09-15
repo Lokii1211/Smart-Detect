@@ -360,7 +360,7 @@ body([("In this environment, relying on weak appearance cues (colour histograms 
        "Crucially, identity collapse is ", ""), ("invisible to Rank-n and mAP", "i"),
        (", which evaluate static retrieval rather than dynamic gallery contamination.", "")])
 
-body("To address this, we present SmartDetect, a real-time surveillance framework founded on face-anchored identity arbitration. "
+body("To address this, we present SmartDetect, an asynchronous multi-camera surveillance framework founded on face-anchored identity arbitration. "
      "The primary novelty of SmartDetect is not the introduction of a new neural backbone, but an asymmetrical evidence hierarchy: "
      "quality-gated facial embeddings act as the sole ground truth for identity creation and vetoes, while clothing colour and body Re-ID "
      "are restricted to short-term, time-bounded re-association.")
@@ -403,10 +403,10 @@ figure(FIGS / "fig_pipeline.png",
         ("SmartDetect per-frame decision pipeline. Stages 5–8 enforce face-anchored arbitration and evidence gating.", "")], CW)
 
 h2("A.  Decoupled Threading Ingest Engine")
-body("To maintain real-time performance on commodity CPU hardware, SmartDetect decouples video capture from deep inference. "
-     "A per-camera capture thread ingests frames at native rates (30 FPS), pushes the newest frame into a depth-1 drop-oldest queue, "
-     "and streams annotated MJPEG video from cached tracking state. An asynchronous ML worker thread executes the analysis pipeline (1–3 Hz on CPU), "
-     "ensuring stream smoothness is decoupled from inference latency.")
+body("To maintain high-throughput video delivery on commodity CPU hardware, SmartDetect decouples video capture from deep inference into an asynchronous architecture. "
+     "A per-camera capture thread ingests frames at native rates (up to 30 FPS), pushes the newest frame into a depth-1 drop-oldest queue, "
+     "and streams annotated MJPEG video using cached tracklet states. An asynchronous ML worker thread executes the full analysis pipeline (62.4 ms/frame, or ~16 FPS continuous single-camera throughput, paced at 1–3 Hz for multi-stream CPU workloads), "
+     "ensuring stream smoothness is decoupled from heavy inference latency.")
 
 h2("B.  Modular Vision Backbones")
 body("SmartDetect integrates proven, pretrained modular backbones without fine-tuning: "
@@ -516,7 +516,9 @@ h1("V", "Experimental Setup")
 
 h2("A.  Benchmark Dataset and Ground Truth Protocol")
 body("We evaluate on the public ChokePoint portal dataset [7] (Sequence P1E_S1, 3 cameras, 25 subjects, 2908 ground-truth person-frames across 6876 video frames). "
-     "Ground truth provides eye coordinates and subject IDs. The unit of measurement is the ground-truth person-frame (including detector misses).")
+     "Ground truth provides eye coordinates and subject IDs. The unit of measurement is the ground-truth person-frame (including detector misses). "
+     "Because the contribution targets stateful identity-gallery contamination rather than benchmark retrieval accuracy, the evaluation focuses on a controlled multi-camera sequence where frame-level identity assignments and cross-camera observations can be explicitly audited. "
+     "The evaluation is limited to the P1E_S1 sequence of the ChokePoint dataset and therefore does not establish generalization across portals, sequences, or datasets.")
 
 h2("B.  Outcome Partition and Evaluation Metrics")
 body("Let maj(c) denote the majority ground-truth identity assigned to code c. Every frame record r maps into an exhaustive, mutually exclusive partition:", indent=0)
@@ -556,12 +558,12 @@ body("We evaluate four cumulative configurations: "
 h1("VI", "Results and Ablation Study")
 
 table_caption([("TABLE II.    Headline Evaluation Metrics on ChokePoint P1E_S1 (2908 Scored Frames)", "b")])
-make_table(["Config", "Identity Precision", "Coverage", "Evidence Precision", "Purity", "IDs", "Dup.", "Cross-Cam", "Latency"],
-           [[" A", "15.5% [14.2–16.8]", "99.8%", "15.5% [14.2–16.8]", "0.0%", "7", "0.40", "8.0%", "55.6 ms"],
-            [" B", "53.8% [52.0–55.6]", "98.6%", "53.8% [52.0–55.6]", "48.3%", "29", "0.38", "28.0%", "58.8 ms"],
-            [" C", "99.7% [99.4–99.8]", "98.6%", "99.7% [99.4–99.8]", "93.2%", "59", "1.36", "50.0%", "60.9 ms"],
-            [" D", "99.7% [99.4–99.8]", "98.6%", "100.0% [99.8–100]", "93.2%", "59", "1.36", "50.0%", "62.4 ms"]],
-           widths=[0.40, 1.05, 0.55, 1.10, 0.55, 0.35, 0.40, 0.65, 0.55],
+make_table(["Configuration", "Precision", "Purity", "Contam. Frames", "Evidence Prec.", "Cross-Cam"],
+           [["A: Baseline", "15.5%", "0.0%", "2454", "15.5%", "8.0%"],
+            ["B: + Face Anchor", "53.8%", "48.3%", "1324", "53.8%", "28.0%"],
+            ["C: + ID-Switch Guard", "99.7%", "93.2%", "9", "99.7%", "50.0%"],
+            ["D: Full Pipeline", "99.7%", "93.2%", "9 (0 logged)", "100.0%", "50.0%"]],
+           widths=[0.85, 0.45, 0.40, 0.55, 0.50, 0.40],
            size=7.2, hl_row=3)
 
 # ── Fig. 2 Full Width: Collapse Matrix ───────────────────────────────────
@@ -576,18 +578,19 @@ new_section(2)
 h2("A.  Ablation Analysis")
 body([("1) Reproduction of Identity Collapse (Config A): ", "b"),
       ("The unhardened baseline exhibits catastrophic collapse, minting only 7 identifiers for 25 individuals (0.0% purity). "
-       "The dominant identifier absorbed 22 distinct people. While achieving 99.8% coverage, identity-assignment precision was only 15.5% (Table II, Fig. 2a).", "")])
+       "The dominant identifier absorbed 22 distinct people across 2454 contaminated frames. While achieving 99.8% coverage, identity-assignment precision was only 15.5% (Table II, Fig. 2a).", "")])
 
 body([("2) Impact of Face-Anchoring (Config B): ", "b"),
-      ("Enforcing face-anchored matching triples precision to 53.8% and increases purity to 48.3% (29 IDs minted). "
+      ("Enforcing face-anchored matching triples precision to 53.8% and increases purity to 48.3% (29 IDs minted), reducing contaminated frames from 2454 to 1324. "
        "However, tracker occlusion swaps continue to cause lingering contamination on cached tracks.", "")])
 
-body([("3) Decisive Role of ID-Switch Guard (Config C): ", "b"),
-      ("Adding contradiction invalidation raises precision to 99.7% and purity to 93.2%, reducing contaminated frames from 1324 to 9. "
-       "Cross-camera re-association increases from 28.0% to 50.0%. As predicted, raw tracker ID switches rose from 44 to 57, confirming that correcting hijacked tracks registers as switches.", "")])
+body([("3) Decisive Role of ID-Switch Guard (Config B → Config C): ", "b"),
+      ("Adding contradiction invalidation produces the single most dramatic ablation improvement: contaminated frames plummet from 1324 to just 9 (a 99.3% reduction in contamination). "
+       "This raises identity-assignment precision from 53.8% to 99.7% and purity from 48.3% to 93.2%, while cross-camera re-association increases from 28.0% to 50.0%. "
+       "As predicted, raw tracker ID switches rose from 44 to 57, confirming that correcting hijacked tracks registers as switches.", "")])
 
 body([("4) Zero-Contamination Evidence Persistence (Config D): ", "b"),
-      ("Config D's evidence gate achieves 100.0% evidence precision, filtering out the 9 transient contradiction frames (2402 clean sighting rows persisted). "
+      ("Config D's evidence gate achieves 100.0% evidence precision, completely filtering out the 9 transient contradiction frames so that 0 incorrect sighting rows are written to disk (2402 clean sighting rows persisted). "
        "Total pipeline latency increases by only 6.8 ms/frame (55.6 ms to 62.4 ms), representing a modest 12% computational overhead.", "")])
 
 figure(FIGS / "fig_buckets.png",
@@ -610,13 +613,15 @@ for lead, txt in [
 
 # ── Section VIII: Discussion and Limitations ─────────────────────────────
 h1("VIII", "Discussion and Limitations")
-body([("1) Face Visibility Constraint: ", "b"),
+body([("1) Sequence and Dataset Scope: ", "b"),
+      ("The evaluation is limited to the P1E_S1 sequence of the ChokePoint dataset and therefore does not establish generalization across portals, sequences, or datasets.", "")])
+body([("2) Face Visibility Constraint: ", "b"),
       ("SmartDetect intentionally refuses to identify subjects whose faces are occluded or below 48px, trading wide-area crowd coverage for zero identity contamination.", "")])
-body([("2) Duplicate Identity Trade-off: ", "b"),
+body([("3) Duplicate Identity Trade-off: ", "b"),
       ("The split-over-merge asymmetry yields an average of 1.36 duplicate codes per person, manageable via operator duplicate-suggestion tooling.", "")])
-body([("3) Cross-Camera Re-Association Ceiling: ", "b"),
+body([("4) Cross-Camera Re-Association Ceiling: ", "b"),
       ("Without spatial camera graph topology, cross-camera re-association is bounded to 50.0%.", "")])
-body([("4) Single-Node Hardware Limits: ", "b"),
+body([("5) Single-Node Hardware Limits: ", "b"),
       ("Analysis latency (62.4 ms) limits concurrent high-resolution streams on CPU.", "")])
 
 # ── Section IX: Conclusion and Future Work ───────────────────────────────
