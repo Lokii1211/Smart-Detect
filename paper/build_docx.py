@@ -346,7 +346,7 @@ ABSTRACT = (
     "are continuously observed, and every identification decision dynamically mutates the reference gallery for subsequent frames. "
     "Under this regime, unconstrained appearance cues (torso colour histograms and body descriptors) induce a critical failure mode: "
     "identity collapse, wherein distinct individuals are fused under a single identifier, contaminating photographic evidence logs. "
-    "We present SmartDetect, a multi-camera tracking and re-ID framework governed by face-anchored identity arbitration. "
+    "We present SmartDetect, a near-real-time asynchronous multi-camera surveillance framework governed by face-anchored identity arbitration. "
     "SmartDetect enforces an asymmetrical evidence hierarchy: quality-gated facial embeddings (ArcFace) alone create or veto identities, "
     "while clothing colour and body Re-ID (OSNet) are restricted to bounded temporal re-association. Three hardening mechanisms—a facial "
     "contradiction veto, an ID-switch contradiction guard, and a face-confirmed evidence gate—prevent gallery corruption. "
@@ -386,7 +386,7 @@ body([("In this environment, relying on weak appearance cues (colour histograms 
        "Crucially, identity collapse is ", ""), ("invisible to Rank-n and mAP", "i"),
        (", which evaluate static retrieval rather than dynamic gallery contamination.", "")])
 
-body("To address this, we present SmartDetect, an asynchronous multi-camera surveillance framework founded on face-anchored identity arbitration. "
+body("To address this, we present SmartDetect, a near-real-time asynchronous multi-camera surveillance framework founded on face-anchored identity arbitration. "
      "The primary novelty of SmartDetect is not the introduction of a new neural backbone, but an asymmetrical evidence hierarchy: "
      "quality-gated facial embeddings act as the sole ground truth for identity creation and vetoes, while clothing colour and body Re-ID "
      "are restricted to short-term, time-bounded re-association.")
