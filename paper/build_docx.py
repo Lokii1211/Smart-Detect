@@ -645,7 +645,7 @@ body([("1) Sequence and Dataset Scope: ", "b"),
 body([("2) Proof-of-Concept Protocol: ", "b"),
       ("This sequence is used as a controlled proof-of-concept protocol for auditing stateful identity assignments rather than as evidence of dataset-wide generalization.", "")])
 body([("3) Face Visibility Requirement: ", "b"),
-      ("Face visibility is strictly required for reliable identity arbitration; subjects without visible faces remain unassigned or transiently tracked.", "")])
+      ("Face visibility is strictly required for reliable identity arbitration; subjects without visible faces remain unassigned or transiently tracked, trading wide-area crowd coverage for zero contaminated persistent evidence under the evaluated protocol.", "")])
 body([("4) Face Resolution Constraints: ", "b"),
       ("Faces with height below 48px or detector confidence < 0.60 are rejected from biometric arbitration to prevent poor-quality embeddings.", "")])
 body([("5) Duplicate Identity Trade-off: ", "b"),
