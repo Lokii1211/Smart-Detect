@@ -558,13 +558,14 @@ body("We evaluate four cumulative configurations: "
 h1("VI", "Results and Ablation Study")
 
 table_caption([("TABLE II.    Headline Evaluation Metrics on ChokePoint P1E_S1 (2908 Scored Frames)", "b")])
-make_table(["Configuration", "Precision", "Purity", "Contam. Frames", "Evidence Prec.", "Cross-Cam"],
-           [["A: Baseline", "15.5%", "0.0%", "2454", "15.5%", "8.0%"],
-            ["B: + Face Anchor", "53.8%", "48.3%", "1324", "53.8%", "28.0%"],
-            ["C: + ID-Switch Guard", "99.7%", "93.2%", "9", "99.7%", "50.0%"],
-            ["D: Full Pipeline", "99.7%", "93.2%", "9 (0 logged)", "100.0%", "50.0%"]],
-           widths=[0.85, 0.45, 0.40, 0.55, 0.50, 0.40],
-           size=7.2, hl_row=3)
+make_table(["Configuration", "Precision", "Coverage", "Purity", "Contam.", "Evidence", "IDs", "Cross-Cam"],
+           [["A: Pre-hardening", "15.5%", "99.8%", "0.0%", "2454", "—*", "7", "8.0%"],
+            ["B: Face Anchor", "53.8%", "98.6%", "48.3%", "1324", "—*", "29", "28.0%"],
+            ["C: + ID-Switch Guard", "99.7%", "98.6%", "93.2%", "9", "—*", "59", "50.0%"],
+            ["D: Full Pipeline", "99.7%", "98.6%", "93.2%", "9", "100.0%", "59", "50.0%"]],
+           widths=[0.78, 0.38, 0.35, 0.33, 0.35, 0.40, 0.22, 0.42],
+           size=7.0, hl_row=3)
+para("*Evidence Precision is not applicable (—) for Configs A–C because face-confirmed evidence gating is disabled; in Config D, gating prevents transient contaminated frames from writing to disk (0 incorrect rows persisted).", size=6.8, italic=True, after=2)
 
 # ── Fig. 2 Full Width: Collapse Matrix ───────────────────────────────────
 new_section(1)
@@ -599,7 +600,7 @@ figure(FIGS / "fig_buckets.png",
 
 # ── Section VII: Data Governance and Technical Privacy ───────────────────
 h1("VII", "Data Governance and Technical Privacy")
-body("Surveillance biometrics demand active technical enforcement. SmartDetect implements three core technical safeguards:", indent=0)
+body("Surveillance biometrics demand active technical enforcement. SmartDetect implements technical safeguards aligned with privacy and data-governance requirements [13], [14]:", indent=0)
 
 for lead, txt in [
     ("• Consent-Driven Retention TTLs:", " Enrolled profiles are classified as 'consented' (365d TTL), 'dataset' (3650d TTL), or 'unknown' (7d automated purge TTL)."),
@@ -615,21 +616,32 @@ for lead, txt in [
 h1("VIII", "Discussion and Limitations")
 body([("1) Sequence and Dataset Scope: ", "b"),
       ("The evaluation is limited to the P1E_S1 sequence of the ChokePoint dataset and therefore does not establish generalization across portals, sequences, or datasets.", "")])
-body([("2) Face Visibility Constraint: ", "b"),
-      ("SmartDetect intentionally refuses to identify subjects whose faces are occluded or below 48px, trading wide-area crowd coverage for zero identity contamination.", "")])
-body([("3) Duplicate Identity Trade-off: ", "b"),
-      ("The split-over-merge asymmetry yields an average of 1.36 duplicate codes per person, manageable via operator duplicate-suggestion tooling.", "")])
-body([("4) Cross-Camera Re-Association Ceiling: ", "b"),
+body([("2) Proof-of-Concept Protocol: ", "b"),
+      ("This sequence is used as a controlled proof-of-concept protocol for auditing stateful identity assignments rather than as evidence of dataset-wide generalization.", "")])
+body([("3) Face Visibility Requirement: ", "b"),
+      ("Face visibility is strictly required for reliable identity arbitration; subjects without visible faces remain unassigned or transiently tracked.", "")])
+body([("4) Face Resolution Constraints: ", "b"),
+      ("Faces with height below 48px or detector confidence < 0.60 are rejected from biometric arbitration to prevent poor-quality embeddings.", "")])
+body([("5) Duplicate Identity Trade-off: ", "b"),
+      ("Under the intentional split-over-merge asymmetry, duplicate identity generation is accepted as a safety trade-off to prevent irreversible gallery contamination.", "")])
+body([("6) Duplicate Identity Metric: ", "b"),
+      ("The evaluation yielded an average of 1.36 duplicate codes per person, manageable via operator duplicate-suggestion merge tooling.", "")])
+body([("7) Cross-Camera Re-Association Ceiling: ", "b"),
       ("Without spatial camera graph topology, cross-camera re-association is bounded to 50.0%.", "")])
-body([("5) Single-Node Hardware Limits: ", "b"),
-      ("Analysis latency (62.4 ms) limits concurrent high-resolution streams on CPU.", "")])
+body([("8) Single-Node CPU Latency: ", "b"),
+      ("Per-frame analysis latency (62.4 ms/frame, ~16 FPS continuous single-camera throughput) limits concurrent high-resolution streams on a single CPU node.", "")])
+body([("9) Multi-Stream CPU Pacing: ", "b"),
+      ("Multi-stream CPU workloads are paced at 1–3 Hz to prevent queue starvation and maintain stream smoothness.", "")])
+body([("10) Baseline Scope: ", "b"),
+      ("A direct empirical comparison against conventional appearance-only multi-camera Re-ID baselines remains an important direction for future evaluation.", "")])
 
 # ── Section IX: Conclusion and Future Work ───────────────────────────────
 h1("IX", "Conclusion and Future Work")
 body("Ranked retrieval benchmarks fail to expose identity collapse in autonomous surveillance. "
-     "SmartDetect demonstrates that face-anchored identity arbitration, contradiction guards, and evidence gating eliminate identity collapse under the evaluated ChokePoint protocol "
-     "(99.7% identity-assignment precision, 93.2% purity, 100.0% evidence precision) at minimal CPU cost (62.4 ms/frame). "
-     "Future work includes tracklet-level consensus voting and spatial-topological graph constraints to improve multi-camera continuity.")
+     "SmartDetect substantially mitigates identity collapse under the evaluated ChokePoint P1E_S1 protocol, "
+     "achieving 99.7% identity-assignment precision, 93.2% identity purity, and 100.0% evidence precision at 62.4 ms/frame. "
+     "This demonstrates that face-anchored identity arbitration, contradiction guards, and evidence gating preserve gallery integrity. "
+     "Future work includes evaluating direct appearance-only baselines across broader portal sequences, tracklet-level consensus voting, and spatial-topological graph constraints.")
 
 # ── Section X: Acknowledgment ────────────────────────────────────────────
 h1("", "Acknowledgment")
