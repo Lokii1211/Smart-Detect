@@ -351,7 +351,7 @@ ABSTRACT = (
     "while clothing colour and body Re-ID (OSNet) are restricted to bounded temporal re-association. Three hardening mechanisms—a facial "
     "contradiction veto, an ID-switch contradiction guard, and a face-confirmed evidence gate—prevent gallery corruption. "
     "Evaluated on the ChokePoint portal benchmark (25 subjects, 3 cameras, 2908 person-frames), an unhardened baseline collapses into "
-    "7 merged identities (0.0% purity, 15.5% precision at 99.8% coverage). SmartDetect eliminates identity collapse under the evaluated ChokePoint protocol, "
+    "7 merged identities (0.0% purity, 15.5% precision at 99.8% coverage). SmartDetect substantially mitigates identity collapse under the evaluated ChokePoint protocol, "
     "achieving 99.7% identity-assignment precision, 93.2% purity, and 100.0% evidence precision at 98.6% coverage, adding only 6.8 ms per-frame CPU latency."
 )
 
@@ -397,7 +397,7 @@ for lead, txt in [
     ("2) Identity-Collapse Protection:", " Hardening mechanisms including a facial contradiction veto on appearance proposals and a 2-strike ID-switch guard countering tracker occlusion errors."),
     ("3) Evidence-Aware Persistence:", " A face-confirmed evidence gate decoupling transient on-screen annotations from persistent database writes, preventing false photographic evidence logging."),
     ("4) Open-Set Evaluation Methodology:", " An exhaustive outcome partition (CORRECT, CONTAMINATED, UNASSIGNED), separating precision from coverage without artificial F-score blending, paired with a dataset adequacy gate."),
-    ("5) Ablation-Based Validation:", " Rigorous quantification on the ChokePoint benchmark demonstrating that SmartDetect eliminates identity collapse under the evaluated ChokePoint protocol with 99.7% identity-assignment precision and 100.0% evidence precision.")
+    ("5) Ablation-Based Validation:", " Rigorous quantification on the ChokePoint benchmark demonstrating that SmartDetect substantially mitigates identity collapse under the evaluated ChokePoint protocol with 99.7% identity-assignment precision and 100.0% evidence precision.")
 ]:
     body([(lead, "b"), (txt, "")])
 
